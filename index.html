@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Habit Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #020817; font-family: 'Courier New', monospace; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: #0F172A; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const TODAY     = new Date().toISOString().slice(0,10)
+const TODAY_DOW = new Date().getDay()
+const TODAY_DOM = new Date().getDate()
+
+// PRIMARY tabs = time of day
+const TIME_TABS = [
+  { id: "all",    label: "ALL",     color: "#94a3b8", emoji: "📌" },
+  { id: "wakeup", label: "WAKE UP", color: "#F59E0B", emoji: "🌅" },
+  { id: "am",     label: "AM",      color: "#3B82F6", emoji: "☀️"  },
+  { id: "pm",     label: "PM",      color: "#8B5CF6", emoji: "🌤"  },
+  { id: "night",  label: "NIGHT",   color: "#475569", emoji: "🌙"  },
+  { id: "goals",  label: "GOALS",   color: "#EF4444", emoji: "🎯"  },
+]
+
+// SECONDARY filter = category
+const CAT_TABS = [
+  { id: "all",          label: "ALL",           color: "#64748b" },
+  { id: "health",       label: "Health",        color: "#10B981" },
+  { id: "exercise",     label: "Exercise",      color: "#3B82F6" },
+  { id: "spirituality", label: "Spirituality",  color: "#8B5CF6" },
+  { id: "manifestation",label: "Manifestation", color: "#D4A017" },
+]
+
+const DOW_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
+
+// slot: wakeup | am | pm | night
+// freq: daily | weekly | monthly
+// cat:  health | exercise | spirituality | manifestation
+// dow:  0-6 (weekly only)
+// dom:  1-31 (monthly only)
+const ALL_HABITS = [
+  // Health
+  { id: "h1", label: "Cold shower",                   cat: "health",        slot: "wakeup", freq: "daily"   },
+  { id: "h2", label: "Vitamins / supplements",         cat: "health",        slot: "am",     freq: "daily"   },
+  { id: "h3", label: "Drink 2L water",                 cat: "health",        slot: "am",     freq: "daily"   },
+  { id: "h4", label: "Screen off 30 mins before bed",  cat: "health",        slot: "night",  freq: "daily"   },
+  { id: "h5", label: "Sleep 7+ hours",                 cat: "health",        slot: "night",  freq: "daily"   },
+  { id: "h6", label: "No alcohol",                     cat: "health",        slot: "night",  freq: "daily"   },
+  { id: "h7", label: "Full bloods check",              cat: "health",        slot: "am",     freq: "monthly", dom: 1 },
+  // Exercise
+  { id: "e1", label: "Morning walk / run",             cat: "exercise",      slot: "wakeup", freq: "daily"   },
+  { id: "e2", label: "Workout session",                cat: "exercise",      slot: "am",     freq: "daily"   },
+  { id: "e3", label: "Stretch / mobility",             cat: "exercise",      slot: "pm",     freq: "daily"   },
+  { id: "e4", label: "Steps goal (10k)",               cat: "exercise",      slot: "night",  freq: "daily"   },
+  { id: "e5", label: "Rest day",                       cat: "exercise",      slot: "am",     freq: "weekly",  dow: 0 },
+  { id: "e6", label: "Review training plan",           cat: "exercise",      slot: "am",     freq: "weekly",  dow: 0 },
+  // Spirituality
+  { id: "s1", label: "Morning meditation",             cat: "spirituality",  slot: "wakeup", freq: "daily"   },
+  { id: "s2", label: "Prayer / intention setting",     cat: "spirituality",  slot: "wakeup", freq: "daily"   },
+  { id: "s3", label: "Gratitude journal",              cat: "spirituality",  slot: "am",     freq: "daily"   },
+  { id: "s4", label: "Read (non-fiction)",             cat: "spirituality",  slot: "pm",     freq: "daily"   },
+  { id: "s5", label: "Evening reflection",             cat: "spirituality",  slot: "night",  freq: "daily"   },
+  { id: "s6", label: "Digital detox hour",             cat: "spirituality",  slot: "pm",     freq: "weekly",  dow: 0 },
+  // Manifestation
+  { id: "m1", label: "Read vision board",              cat: "manifestation", slot: "wakeup", freq: "daily"   },
+  { id: "m2", label: "Affirmations",                   cat: "manifestation", slot: "wakeup", freq: "daily"   },
+  { id: "m3", label: "Visualisation (5 mins)",         cat: "manifestation", slot: "am",     freq: "daily"   },
+  { id: "m4", label: "Scripting",                      cat: "manifestation", slot: "pm",     freq: "daily"   },
+  { id: "m5", label: "Review goals",                   cat: "manifestation", slot: "am",     freq: "weekly",  dow: 1 },
+  { id: "m6", label: "Review monthly intentions",      cat: "manifestation", slot: "am",     freq: "monthly", dom: 1 },
+]
+
+const GOALS = [
+  { id: "g1", label: "Salary raise to >300k",              category: "Financial" },
+  { id: "g2", label: "Bonus >100k",                        category: "Financial" },
+  { id: "g3", label: "ESOP >100k",                         category: "Financial" },
+  { id: "g4", label: "Consistently earn >100k per month",  category: "Financial" },
+  { id: "g5", label: "Best physical shape of my life",     category: "Physical"  },
+]
+
+function getPeriodKey(habit) {
+  if (habit.freq === "weekly")  return `${habit.id}_W${getWeekKey()}`
+  if (habit.freq === "monthly") return `${habit.id}_M${getMonthKey()}`
+  return `${habit.id}_${TODAY}`
+}
+function getWeekKey() {
+  const d = new Date(), s = new Date(d.getFullYear(),0,1)
+  return `${d.getFullYear()}W${Math.ceil(((d-s)/86400000+s.getDay()+1)/7)}`
+}
+function getMonthKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+}
+function isVisibleToday(h) {
+  if (h.freq === "daily")   return true
+  if (h.freq === "weekly")  return h.dow === undefined || h.dow === TODAY_DOW
+  if (h.freq === "monthly") return h.dom === undefined || h.dom === TODAY_DOM
+  return true
+}
+function isLink(t) { try { new URL(t); return true } catch { return false } }
+function load(k,d) { try { return JSON.parse(localStorage.getItem(k)||JSON.stringify(d)) } catch { return d } }
+function save(k,v) { try { localStorage.setItem(k,JSON.stringify(v)) } catch {} }
+
+const CAT_COLOR = { health:"#10B981", exercise:"#3B82F6", spirituality:"#8B5CF6", manifestation:"#D4A017" }
+const CAT_LABEL = { health:"Health", exercise:"Exercise", spirituality:"Spirituality", manifestation:"Manifestation" }
+
+// ---- Habit Item ----
+function HabitItem({ habit, done, streak, total, tabColor, showCat, onToggle, note, onSaveNote }) {
+  const [expanded, setExpanded] = useState(false)
+  const [editing,  setEditing]  = useState(false)
+  const catColor = CAT_COLOR[habit.cat]
+
+  const schedLabel = habit.freq === "weekly"
+    ? `Weekly · ${DOW_LABELS[habit.dow ?? TODAY_DOW]}`
+    : habit.freq === "monthly"
+    ? `Monthly · ${habit.dom ?? TODAY_DOM}`
+    : null
+
+  return (
+    <div style={{ marginBottom: 5, borderRadius: 9, overflow: "hidden", border: `1px solid ${done ? (tabColor+"44") : "#1E293B"}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: done ? `${tabColor}10` : "#0c1524", opacity: done ? 0.7 : 1 }}>
+        {/* Tick */}
+        <div onClick={onToggle}
+          style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${done ? tabColor : "#475569"}`, background: done ? tabColor : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
+          {done && <span style={{ color: "#fff", fontSize: 11, fontWeight: 900 }}>✓</span>}
+        </div>
+
+        {/* Label + meta */}
+        <div style={{ flex: 1, minWidth: 0 }} onClick={onToggle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+            {showCat && <span style={{ fontSize: 7.5, background: `${catColor}22`, color: catColor, padding: "1px 5px", borderRadius: 3, fontWeight: 700, flexShrink: 0 }}>{CAT_LABEL[habit.cat]}</span>}
+            <span style={{ fontSize: 12, color: done ? "#475569" : "#cbd5e1", textDecoration: done ? "line-through" : "none", cursor: "pointer" }}>{habit.label}</span>
+          </div>
+          <div style={{ fontSize: 8, color: "#334155", marginTop: 1 }}>
+            {schedLabel && <span>{schedLabel} · </span>}
+            {total > 0 && <span>{total}× this year</span>}
+            {done && <span style={{ color: "#334155" }}> · tap to untick</span>}
+          </div>
+          {note && !expanded && (
+            <div onClick={e => { e.stopPropagation(); setExpanded(true) }}
+              style={{ fontSize: 9, color: "#64748b", marginTop: 3, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              📎 {note}
+            </div>
+          )}
+        </div>
+
+        {/* Streak */}
+        {streak > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 3, background: "#1E293B", padding: "3px 7px", borderRadius: 10, flexShrink: 0 }}>
+            <span style={{ fontSize: 10 }}>🔥</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#F59E0B" }}>{streak}</span>
+          </div>
+        )}
+
+        {/* Expand toggle */}
+        <button onClick={() => { setExpanded(!expanded); setEditing(false) }}
+          style={{ background: expanded ? "#1E293B" : "transparent", border: `1px solid ${expanded ? "#334155" : "transparent"}`, color: "#475569", cursor: "pointer", fontSize: 10, padding: "2px 6px", borderRadius: 4, fontFamily: "inherit", flexShrink: 0 }}>
+          {expanded ? "▲" : "▼"}
+        </button>
+      </div>
+
+      {/* Note panel */}
+      {expanded && (
+        <div style={{ padding: "8px 12px 10px", background: "#080f1e", borderTop: "1px solid #1E293B" }}>
+          {editing ? (
+            <div>
+              <textarea autoFocus defaultValue={note}
+                onBlur={e => { onSaveNote(e.target.value); setEditing(false) }}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSaveNote(e.target.value); setEditing(false) } }}
+                placeholder="Add note, link, or reminder..."
+                style={{ width: "100%", background: "#1E293B", border: `1px solid ${tabColor}`, borderRadius: 6, color: "#f1f5f9", padding: "7px 10px", fontSize: 10, fontFamily: "inherit", resize: "none", height: 65, outline: "none" }} />
+              <div style={{ fontSize: 8, color: "#334155", marginTop: 3 }}>Enter to save</div>
+            </div>
+          ) : note ? (
+            <div onClick={() => setEditing(true)} style={{ cursor: "pointer" }}>
+              {isLink(note)
+                ? <a href={note} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: tabColor, wordBreak: "break-all" }} onClick={e => e.stopPropagation()}>🔗 {note}</a>
+                : <div style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{note}</div>}
+              <div style={{ fontSize: 8, color: "#334155", marginTop: 4 }}>Tap to edit</div>
+            </div>
+          ) : (
+            <button onClick={() => setEditing(true)}
+              style={{ background: "transparent", border: "1px dashed #334155", color: "#475569", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 10, fontFamily: "inherit", width: "100%" }}>
+              + Add note or link
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---- Goals View ----
+function GoalsView() {
+  const [checked, setChecked] = useState(() => load("ht_goals_checked", {}))
+  useEffect(() => { save("ht_goals_checked", checked) }, [checked])
+  const cats = [...new Set(GOALS.map(g => g.category))]
+  const doneCount = GOALS.filter(g => checked[g.id]).length
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>
+      <div style={{ fontSize: 10, color: "#EF4444", fontWeight: 700, marginBottom: 12 }}>{doneCount}/{GOALS.length} achieved</div>
+      {cats.map(cat => (
+        <div key={cat} style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#EF4444", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 6, height: 6, borderRadius: 3, background: "#EF4444" }} />{cat}
+          </div>
+          {GOALS.filter(g => g.category === cat).map(goal => {
+            const isDone = !!checked[goal.id]
+            return (
+              <div key={goal.id} onClick={() => setChecked(prev => ({ ...prev, [goal.id]: !prev[goal.id] }))}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", marginBottom: 5, borderRadius: 9, cursor: "pointer", background: isDone ? "#EF444418" : "#0c1524", border: `1px solid ${isDone ? "#EF4444" : "#1E293B"}` }}>
+                <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${isDone ? "#EF4444" : "#475569"}`, background: isDone ? "#EF4444" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {isDone && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>✓</span>}
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: isDone ? "#64748b" : "#f1f5f9", textDecoration: isDone ? "line-through" : "none", flex: 1 }}>{goal.label}</span>
+                {isDone && <span style={{ fontSize: 14 }}>🏆</span>}
+              </div>
+            )
+          })}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ---- App ----
+function App() {
+  const [activeTime, setActiveTime] = useState("all")
+  const [activeCat,  setActiveCat]  = useState("all")
+  const [checked,    setChecked]    = useState(() => load("ht_checked",   {}))
+  const [streaks,    setStreaks]     = useState(() => load("ht_streaks",   {}))
+  const [lastDone,   setLastDone]   = useState(() => load("ht_lastdone",  {}))
+  const [totalDone,  setTotalDone]  = useState(() => load("ht_totaldone", {}))
+  const [notes,      setNotes]      = useState(() => load("ht_notes",     {}))
+
+  useEffect(() => { save("ht_checked",   checked)   }, [checked])
+  useEffect(() => { save("ht_streaks",   streaks)   }, [streaks])
+  useEffect(() => { save("ht_lastdone",  lastDone)  }, [lastDone])
+  useEffect(() => { save("ht_totaldone", totalDone) }, [totalDone])
+  useEffect(() => { save("ht_notes",     notes)     }, [notes])
+
+  // Reset broken streaks on load
+  useEffect(() => {
+    const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10)
+    const upd = { ...streaks }; let changed = false
+    Object.keys(lastDone).forEach(id => {
+      if (lastDone[id] !== TODAY && lastDone[id] !== yesterday && (upd[id]||0) > 0) { upd[id] = 0; changed = true }
+    })
+    if (changed) setStreaks(upd)
+  }, [])
+
+  const toggle = (habit) => {
+    const ck = getPeriodKey(habit)
+    const nowDone = !checked[ck]
+    setChecked(prev => ({ ...prev, [ck]: nowDone }))
+    if (nowDone) {
+      const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10)
+      const cur = streaks[habit.id] || 0
+      const newS = habit.freq === "daily" && lastDone[habit.id] === yesterday ? cur+1 : habit.freq === "daily" ? 1 : cur+1
+      setStreaks(prev  => ({ ...prev, [habit.id]: newS }))
+      setLastDone(prev => ({ ...prev, [habit.id]: TODAY }))
+      setTotalDone(prev => ({ ...prev, [habit.id]: (prev[habit.id]||0)+1 }))
+    } else {
+      setStreaks(prev   => ({ ...prev, [habit.id]: Math.max(0,(prev[habit.id]||1)-1) }))
+      setTotalDone(prev => ({ ...prev, [habit.id]: Math.max(0,(prev[habit.id]||1)-1) }))
+      setLastDone(prev  => { const n={...prev}; delete n[habit.id]; return n })
+    }
+  }
+
+  const saveNote = (habitId, val) => setNotes(prev => ({ ...prev, [habitId]: val }))
+
+  const visible = ALL_HABITS
+    .filter(isVisibleToday)
+    .filter(h => activeTime === "all" || h.slot === activeTime)
+    .filter(h => activeCat  === "all" || h.cat  === activeCat)
+
+  const pending   = visible.filter(h => !checked[getPeriodKey(h)])
+  const completed = visible.filter(h =>  checked[getPeriodKey(h)])
+
+  const timePending = (slotId) => ALL_HABITS.filter(isVisibleToday)
+    .filter(h => slotId === "all" || h.slot === slotId)
+    .filter(h => activeCat === "all" || h.cat === activeCat)
+    .filter(h => !checked[getPeriodKey(h)]).length
+
+  const totalToday    = ALL_HABITS.filter(isVisibleToday).length
+  const totalComplete = ALL_HABITS.filter(isVisibleToday).filter(h => checked[getPeriodKey(h)]).length
+  const tab           = TIME_TABS.find(t => t.id === activeTime)
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#020817", color:"#f1f5f9", display:"flex", flexDirection:"column" }}>
+      <div style={{ maxWidth:520, margin:"0 auto", width:"100%", display:"flex", flexDirection:"column", minHeight:"100vh" }}>
+
+        {/* Header */}
+        <div style={{ padding:"12px 14px 0", background:"#030d1c", borderBottom:"1px solid #0F172A" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <div>
+              <div style={{ fontSize:9, color:"#D4A017", letterSpacing:"0.2em", textTransform:"uppercase", fontWeight:700 }}>● DAILY SYSTEM</div>
+              <div style={{ fontSize:18, fontWeight:900, color:"#f8fafc" }}>Habit Tracker</div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:11, color:"#D4A017", fontWeight:700 }}>{new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"})}</div>
+              {activeTime !== "goals" && <div style={{ fontSize:11, fontWeight:700, color:tab.color, marginTop:1 }}>{totalComplete}/{totalToday} today</div>}
+            </div>
+          </div>
+
+          {/* Primary: Time of day tabs */}
+          <div style={{ display:"flex" }}>
+            {TIME_TABS.map(t => {
+              const cnt = t.id === "goals" ? 0 : timePending(t.id)
+              return (
+                <button key={t.id} onClick={() => setActiveTime(t.id)}
+                  style={{ flex:1, padding:"7px 2px", background:"transparent", border:"none", borderBottom: activeTime===t.id ? `2px solid ${t.color}` : "2px solid transparent", color: activeTime===t.id ? t.color : "#475569", cursor:"pointer", fontFamily:"inherit", fontSize:8, fontWeight:700, textAlign:"center" }}>
+                  <div style={{ fontSize:13 }}>{t.emoji}</div>
+                  <div style={{ marginTop:1 }}>{t.label}</div>
+                  {cnt > 0 && <div style={{ fontSize:8, fontWeight:900, color:t.color }}>{cnt}</div>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Secondary: Category filter — only when not Goals */}
+        {activeTime !== "goals" && (
+          <div style={{ display:"flex", background:"#050e1c", borderBottom:"1px solid #1E293B" }}>
+            {CAT_TABS.map(c => (
+              <button key={c.id} onClick={() => setActiveCat(c.id)}
+                style={{ flex:1, padding:"6px 2px", background: activeCat===c.id ? "#0c1524" : "transparent", border:"none", borderBottom: activeCat===c.id ? `2px solid ${c.color}` : "2px solid transparent", color: activeCat===c.id ? c.color : "#334155", cursor:"pointer", fontFamily:"inherit", fontSize:8.5, fontWeight:700 }}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Content */}
+        {activeTime === "goals" ? <GoalsView /> : (
+          <div style={{ flex:1, overflowY:"auto", padding:"8px 12px" }}>
+
+            {visible.length === 0 && (
+              <div style={{ textAlign:"center", color:"#334155", padding:"30px 0", fontSize:11 }}>No habits for this time slot</div>
+            )}
+
+            {/* Pending */}
+            {pending.map(habit => (
+              <HabitItem key={habit.id} habit={habit} done={false}
+                streak={streaks[habit.id]||0} total={totalDone[habit.id]||0}
+                tabColor={tab.color} showCat={activeCat === "all"}
+                note={notes[habit.id]||""}
+                onToggle={() => toggle(habit)}
+                onSaveNote={val => saveNote(habit.id, val)} />
+            ))}
+
+            {/* Completed zone */}
+            {completed.length > 0 && (
+              <div style={{ marginTop:10 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 8px", background:"#0c1524", borderRadius:6, marginBottom:6 }}>
+                  <span style={{ fontSize:9, fontWeight:700, color:"#475569", textTransform:"uppercase", letterSpacing:"0.1em" }}>✓ Done ({completed.length})</span>
+                  <div style={{ flex:1, height:1, background:"#1E293B" }} />
+                  <span style={{ fontSize:8, color:"#334155" }}>tap to untick</span>
+                </div>
+                {completed.map(habit => (
+                  <HabitItem key={habit.id} habit={habit} done={true}
+                    streak={streaks[habit.id]||0} total={totalDone[habit.id]||0}
+                    tabColor={tab.color} showCat={activeCat === "all"}
+                    note={notes[habit.id]||""}
+                    onToggle={() => toggle(habit)}
+                    onSaveNote={val => saveNote(habit.id, val)} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{ padding:"8px 12px", background:"#030d1c", borderTop:"1px solid #1E293B", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ fontSize:8.5, color:"#334155" }}>Streaks reset if you miss a day</div>
+          {activeTime !== "goals" && (
+            <button onClick={() => {
+              if (confirm("Reset all visible habits for today?")) {
+                const n = {...checked}
+                visible.forEach(h => delete n[getPeriodKey(h)])
+                setChecked(n)
+              }
+            }} style={{ background:"transparent", border:"1px solid #1E293B", color:"#334155", padding:"4px 10px", borderRadius:5, cursor:"pointer", fontSize:9, fontFamily:"inherit" }}>
+              Reset today
+            </button>
+          )}
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+</script>
+</body>
+</html>
