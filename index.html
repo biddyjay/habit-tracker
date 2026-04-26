@@ -20,18 +20,18 @@ body { background: #020817; font-family: 'Courier New', monospace; }
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-const TODAY     = new Date().toISOString().slice(0,10)
-const TODAY_DOW = new Date().getDay()
-const TODAY_DOM = new Date().getDate()
+const TODAY     = new Date().toISOString().slice(0,10);
+const TODAY_DOW = new Date().getDay();
+const TODAY_DOM = new Date().getDate();
 
 const TIME_TABS = [
-  { id:"all",    label:"ALL",     color:"#94a3b8", emoji:"📌" },
-  { id:"wakeup", label:"WAKE UP", color:"#F59E0B", emoji:"🌅" },
-  { id:"am",     label:"AM",      color:"#3B82F6", emoji:"☀️"  },
-  { id:"pm",     label:"PM",      color:"#8B5CF6", emoji:"🌤"  },
-  { id:"night",  label:"NIGHT",   color:"#475569", emoji:"🌙"  },
-  { id:"goals",  label:"GOALS",   color:"#EF4444", emoji:"🎯"  },
-]
+  { id:"all",    label:"ALL",     color:"#94a3b8", emoji:"*"  },
+  { id:"wakeup", label:"SUNRISE", color:"#F59E0B", emoji:"()" },
+  { id:"am",     label:"AM",      color:"#3B82F6", emoji:">"  },
+  { id:"pm",     label:"PM",      color:"#8B5CF6", emoji:"~"  },
+  { id:"night",  label:"NIGHT",   color:"#475569", emoji:"."  },
+  { id:"goals",  label:"GOALS",   color:"#EF4444", emoji:"!"  },
+];
 
 const CAT_TABS = [
   { id:"all",          label:"ALL",           color:"#64748b" },
@@ -39,43 +39,45 @@ const CAT_TABS = [
   { id:"exercise",     label:"Exercise",      color:"#3B82F6" },
   { id:"spirituality", label:"Spirituality",  color:"#8B5CF6" },
   { id:"manifestation",label:"Manifestation", color:"#D4A017" },
-]
+];
 
-const CAT_COLOR = { health:"#10B981", exercise:"#3B82F6", spirituality:"#8B5CF6", manifestation:"#D4A017" }
-const CAT_LABEL = { health:"Health", exercise:"Exercise", spirituality:"Spirituality", manifestation:"Manifestation" }
-const DOW_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
+const CAT_COLOR = { health:"#10B981", exercise:"#3B82F6", spirituality:"#8B5CF6", manifestation:"#D4A017" };
+const CAT_LABEL = { health:"Health", exercise:"Exercise", spirituality:"Spirituality", manifestation:"Manifestation" };
+const DOW_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-const NOTION_1ST   = "https://www.notion.so/1st-thing-34e47681ffb1806bb35ce011d9de749a"
-const NOTION_DES   = "https://www.notion.so/Statement-of-Desire-34e47681ffb1808ca4d3c2ef8dbac2cd"
-const NOTION_AFF   = "https://www.notion.so/Morning-Affirmation-26047681ffb18020b065da6b2613488d"
-const NOTION_60AFF = "https://www.notion.so/60-Second-Affirmations-26047681ffb18020b065da6b2613488d"
+const N1 = "https://www.notion.so/1st-thing-34e47681ffb1806bb35ce011d9de749a";
+const N2 = "https://www.notion.so/Statement-of-Desire-34e47681ffb1808ca4d3c2ef8dbac2cd";
+const N3 = "https://www.notion.so/Morning-Affirmation-26047681ffb18020b065da6b2613488d";
+const YT1 = "https://www.youtube.com/watch?v=PsKEgrx0Xwc";
+const YT2 = "https://www.youtube.com/watch?v=tybOi4hjZFQ";
 
 const ALL_HABITS = [
-  // ── WAKE UP ──────────────────────────────────────────────
-  { id:"wu1", label:"Morning Statements",       cat:"manifestation", slot:"wakeup", freq:"daily",
+  { id:"wu1", label:"Morning Statements", cat:"manifestation", slot:"wakeup", freq:"daily",
     multiCheck:["1st Thing","Desire","Affirmation"],
-    defaultNote:"1st Thing: "+NOTION_1ST+"\nDesire: "+NOTION_DES+"\nAffirmation: "+NOTION_AFF },
-  { id:"wu2", label:"Exercise",                 cat:"exercise",      slot:"wakeup", freq:"daily",
+    defaultNote:"1st Thing: " + N1 + "\nDesire: " + N2 + "\nAffirmation: " + N3 },
+  { id:"wu2", label:"Sunrise Session",    cat:"exercise",      slot:"wakeup", freq:"daily",
     multiCheck:["Trampoline","Push Ups","Activation","Biceps"] },
-  { id:"wu3", label:"Spirituality",             cat:"spirituality",  slot:"wakeup", freq:"daily",
-    multiCheck:["Isha Kriya","Prayer","Breathing"] },
-  { id:"wu4", label:"Nutrition",                cat:"health",        slot:"wakeup", freq:"daily",
+  { id:"wu3", label:"Morning Practice",   cat:"spirituality",  slot:"wakeup", freq:"daily",
+    multiCheck:["Isha Kriya","Prayer","Breathing"],
+    defaultNote:"Isha Kriya: " + YT1 + "\nBreathing: " + YT2 },
+  { id:"wu4", label:"Nutrition",          cat:"health",        slot:"wakeup", freq:"daily",
     multiCheck:["Lemon Water","Celery Juice","Detox Smoothie"] },
-  // ── AM ───────────────────────────────────────────────────
-  { id:"am1", label:"1L water or tea",          cat:"health",        slot:"am",     freq:"daily",  slider:true },
-  { id:"am2", label:"Exercise",                 cat:"exercise",      slot:"am",     freq:"daily",
+  { id:"am1", label:"1L Hydration",       cat:"health",        slot:"am",     freq:"daily",  slider:true },
+  { id:"am2", label:"Gym Session",        cat:"exercise",      slot:"am",     freq:"daily",
     multiCheck:["Jumping Rope","Kettlebells","Strength"] },
-  { id:"am3", label:"Supplements",              cat:"health",        slot:"am",     freq:"daily",
-    multiCheck:["Vit D","Vit C","Vit B12","Zinc","Mag","Creatine"] },
-  { id:"am4", label:"3-6-9",                    cat:"manifestation", slot:"am",     freq:"daily"  },
-  // ── PM ───────────────────────────────────────────────────
-  { id:"pm1", label:"1L water or tea",          cat:"health",        slot:"pm",     freq:"daily",  slider:true },
-  { id:"pm2", label:"3-6-9",                    cat:"manifestation", slot:"pm",     freq:"daily"  },
-  // ── NIGHT ────────────────────────────────────────────────
-  { id:"ni1", label:"Exercise",                 cat:"exercise",      slot:"night",  freq:"daily",
+  { id:"am3", label:"Supplements",        cat:"health",        slot:"am",     freq:"daily",
+    multiCheck:["Vit D","Vit C","Vit B12","Zinc","Mag","Creatine","Tongkat Ali"] },
+  { id:"am4", label:"3-6-9",             cat:"manifestation", slot:"am",     freq:"daily" },
+  { id:"pm1", label:"1L Hydration",       cat:"health",        slot:"pm",     freq:"daily",  slider:true },
+  { id:"pm2", label:"3-6-9",             cat:"manifestation", slot:"pm",     freq:"daily" },
+  { id:"pm3", label:"Home Session",       cat:"exercise",      slot:"pm",     freq:"daily",
+    multiCheck:["Dips","Pull Ups"] },
+  { id:"ni1", label:"Exercise",           cat:"exercise",      slot:"night",  freq:"daily",
     multiCheck:["Stretch","Jaw","Face","Neck"] },
-  { id:"ni2", label:"3-6-9",                    cat:"manifestation", slot:"night",  freq:"daily"  },
-]
+  { id:"ni2", label:"3-6-9",             cat:"manifestation", slot:"night",  freq:"daily" },
+  { id:"ni3", label:"Evening Routine",    cat:"health",        slot:"night",  freq:"daily",
+    multiCheck:["Glasses","Face Care","Magnesium"] },
+];
 
 const GOALS = [
   { id:"g1", label:"Salary raise to >300k",             category:"Financial" },
@@ -83,191 +85,188 @@ const GOALS = [
   { id:"g3", label:"ESOP >100k",                        category:"Financial" },
   { id:"g4", label:"Consistently earn >100k per month", category:"Financial" },
   { id:"g5", label:"Best physical shape of my life",    category:"Physical"  },
-]
+];
 
 function getPeriodKey(h) {
-  if (h.freq==="weekly")  return h.id+"_W"+getWeekKey()
-  if (h.freq==="monthly") return h.id+"_M"+getMonthKey()
-  return h.id+"_"+TODAY
+  if (h.freq==="weekly")  return h.id+"_W"+getWeekKey();
+  if (h.freq==="monthly") return h.id+"_M"+getMonthKey();
+  return h.id+"_"+TODAY;
 }
 function getWeekKey() {
-  const d=new Date(), s=new Date(d.getFullYear(),0,1)
-  return d.getFullYear()+"W"+Math.ceil(((d-s)/86400000+s.getDay()+1)/7)
+  const d=new Date(), s=new Date(d.getFullYear(),0,1);
+  return d.getFullYear()+"W"+Math.ceil(((d-s)/86400000+s.getDay()+1)/7);
 }
 function getMonthKey() {
-  const d=new Date()
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")
+  const d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
 }
 function isVisibleToday(h) {
-  if (h.freq==="daily")   return true
-  if (h.freq==="weekly")  return h.dow===undefined||h.dow===TODAY_DOW
-  if (h.freq==="monthly") return h.dom===undefined||h.dom===TODAY_DOM
-  return true
+  if (h.freq==="daily")   return true;
+  if (h.freq==="weekly")  return h.dow===undefined||h.dow===TODAY_DOW;
+  if (h.freq==="monthly") return h.dom===undefined||h.dom===TODAY_DOM;
+  return true;
 }
-function isLink(t) { try { new URL(t); return true } catch { return false } }
-function ld(k,d) { try { return JSON.parse(localStorage.getItem(k)||JSON.stringify(d)) } catch { return d } }
-function sv(k,v) { try { localStorage.setItem(k,JSON.stringify(v)) } catch {} }
+function isLink(t) { try { new URL(t); return true; } catch { return false; } }
+function ld(k,d) { try { return JSON.parse(localStorage.getItem(k)||JSON.stringify(d)); } catch { return d; } }
+function sv(k,v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} }
 
-// ── Goals ────────────────────────────────────────────────
 function GoalsView() {
-  const [checked, setChecked] = useState(()=>ld("ht_goals",{}))
-  useEffect(()=>{ sv("ht_goals",checked) },[checked])
-  const cats=[...new Set(GOALS.map(g=>g.category))]
-  const doneCount=GOALS.filter(g=>checked[g.id]).length
+  const [checked, setChecked] = useState(function(){ return ld("ht_goals",{}); });
+  useEffect(function(){ sv("ht_goals",checked); },[checked]);
+  const cats=[...new Set(GOALS.map(function(g){ return g.category; }))];
+  const doneCount=GOALS.filter(function(g){ return checked[g.id]; }).length;
   return (
     <div style={{flex:1,overflowY:"auto",padding:"10px 12px"}}>
       <div style={{fontSize:10,color:"#EF4444",fontWeight:700,marginBottom:12}}>{doneCount}/{GOALS.length} achieved</div>
-      {cats.map(cat=>(
-        <div key={cat} style={{marginBottom:16}}>
-          <div style={{fontSize:9,fontWeight:700,color:"#EF4444",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:6,display:"flex",alignItems:"center",gap:6}}>
-            <div style={{width:6,height:6,borderRadius:3,background:"#EF4444"}}/>{cat}
-          </div>
-          {GOALS.filter(g=>g.category===cat).map(goal=>{
-            const isDone=!!checked[goal.id]
-            return (
-              <div key={goal.id} onClick={()=>setChecked(prev=>({...prev,[goal.id]:!prev[goal.id]}))}
-                style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",marginBottom:5,borderRadius:9,cursor:"pointer",background:isDone?"#EF444418":"#0c1524",border:`1px solid ${isDone?"#EF4444":"#1E293B"}`}}>
-                <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${isDone?"#EF4444":"#475569"}`,background:isDone?"#EF4444":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {isDone&&<span style={{color:"#fff",fontSize:13,fontWeight:900}}>✓</span>}
+      {cats.map(function(cat){
+        return (
+          <div key={cat} style={{marginBottom:16}}>
+            <div style={{fontSize:9,fontWeight:700,color:"#EF4444",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:6,display:"flex",alignItems:"center",gap:6}}>
+              <div style={{width:6,height:6,borderRadius:3,background:"#EF4444"}}/>{cat}
+            </div>
+            {GOALS.filter(function(g){ return g.category===cat; }).map(function(goal){
+              const isDone=!!checked[goal.id];
+              return (
+                <div key={goal.id} onClick={function(){ setChecked(function(prev){ return Object.assign({},prev,{[goal.id]:!prev[goal.id]}); }); }}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",marginBottom:5,borderRadius:9,cursor:"pointer",background:isDone?"#EF444418":"#0c1524",border:"1px solid "+(isDone?"#EF4444":"#1E293B")}}>
+                  <div style={{width:22,height:22,borderRadius:6,border:"2px solid "+(isDone?"#EF4444":"#475569"),background:isDone?"#EF4444":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    {isDone&&<span style={{color:"#fff",fontSize:13,fontWeight:900}}>✓</span>}
+                  </div>
+                  <span style={{fontSize:13,fontWeight:600,color:isDone?"#64748b":"#f1f5f9",textDecoration:isDone?"line-through":"none",flex:1}}>{goal.label}</span>
+                  {isDone&&<span style={{fontSize:14}}>★</span>}
                 </div>
-                <span style={{fontSize:13,fontWeight:600,color:isDone?"#64748b":"#f1f5f9",textDecoration:isDone?"line-through":"none",flex:1}}>{goal.label}</span>
-                {isDone&&<span style={{fontSize:14}}>🏆</span>}
-              </div>
-            )
-          })}
-        </div>
-      ))}
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
-  )
+  );
 }
 
-// ── Habit Item ───────────────────────────────────────────
-function HabitItem({habit,done,streak,total,tabColor,showCat,onToggle,note,onSaveNote,qty,onQty,multiSel,onMultiSel}) {
-  const [expanded,setExpanded]=useState(false)
-  const [editing, setEditing] =useState(false)
-  const catColor=CAT_COLOR[habit.cat]
-  const schedLabel=habit.freq==="weekly"?"Weekly · "+DOW_LABELS[habit.dow??TODAY_DOW]
-    :habit.freq==="monthly"?"Monthly · "+(habit.dom??TODAY_DOM):null
+function HabitItem(props) {
+  const habit=props.habit, done=props.done, streak=props.streak, total=props.total;
+  const tabColor=props.tabColor, showCat=props.showCat, onToggle=props.onToggle;
+  const note=props.note, onSaveNote=props.onSaveNote, qty=props.qty, onQty=props.onQty;
+  const multiSel=props.multiSel, onMultiSel=props.onMultiSel;
+
+  const [expanded,setExpanded]=useState(false);
+  const [editing, setEditing] =useState(false);
+  const catColor=CAT_COLOR[habit.cat];
 
   return (
-    <div style={{marginBottom:5,borderRadius:9,overflow:"hidden",border:`1px solid ${done?(tabColor+"44"):"#1E293B"}`}}>
-
-      {/* Main row */}
-      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:done?`${tabColor}10`:"#0c1524",opacity:done?0.7:1}}>
+    <div style={{marginBottom:5,borderRadius:9,overflow:"hidden",border:"1px solid "+(done?(tabColor+"44"):"#1E293B")}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:done?(tabColor+"10"):"#0c1524",opacity:done?0.7:1}}>
         <div onClick={onToggle}
-          style={{width:20,height:20,borderRadius:5,border:`2px solid ${done?tabColor:"#475569"}`,background:done?tabColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
+          style={{width:20,height:20,borderRadius:5,border:"2px solid "+(done?tabColor:"#475569"),background:done?tabColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
           {done&&<span style={{color:"#fff",fontSize:11,fontWeight:900}}>✓</span>}
         </div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
-            {showCat&&<span style={{fontSize:7.5,background:`${catColor}22`,color:catColor,padding:"1px 5px",borderRadius:3,fontWeight:700,flexShrink:0}}>{CAT_LABEL[habit.cat]}</span>}
-            <span onClick={!habit.slider&&!habit.multiCheck?onToggle:undefined}
-              style={{fontSize:12,color:done?"#475569":"#cbd5e1",textDecoration:done?"line-through":"none",cursor:"pointer"}}>{habit.label}</span>
+            {showCat&&<span style={{fontSize:7.5,background:catColor+"22",color:catColor,padding:"1px 5px",borderRadius:3,fontWeight:700,flexShrink:0}}>{CAT_LABEL[habit.cat]}</span>}
+            <span style={{fontSize:12,color:done?"#475569":"#cbd5e1",textDecoration:done?"line-through":"none"}}>{habit.label}</span>
           </div>
           <div style={{fontSize:8,color:"#334155",marginTop:1}}>
-            {schedLabel&&<span>{schedLabel} · </span>}
-            {total>0&&<span>{total}× this year</span>}
+            {total>0&&<span>{total}x this year</span>}
             {done&&<span> · tap to untick</span>}
           </div>
-          {note&&!expanded&&(
-            <div onClick={e=>{e.stopPropagation();setExpanded(true)}}
-              style={{fontSize:9,color:"#64748b",marginTop:3,cursor:"pointer",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-              📎 tap for links
+          {(note&&!expanded)&&(
+            <div onClick={function(e){ e.stopPropagation(); setExpanded(true); }}
+              style={{fontSize:9,color:"#64748b",marginTop:3,cursor:"pointer"}}>
+              tap for links
             </div>
           )}
         </div>
         {streak>0&&(
           <div style={{display:"flex",alignItems:"center",gap:3,background:"#1E293B",padding:"3px 7px",borderRadius:10,flexShrink:0}}>
-            <span style={{fontSize:10}}>🔥</span>
-            <span style={{fontSize:10,fontWeight:700,color:"#F59E0B"}}>{streak}</span>
+            <span style={{fontSize:10,fontWeight:700,color:"#F59E0B"}}>x{streak}</span>
           </div>
         )}
-        <button onClick={()=>{setExpanded(!expanded);setEditing(false)}}
-          style={{background:expanded?"#1E293B":"transparent",border:`1px solid ${expanded?"#334155":"transparent"}`,color:"#475569",cursor:"pointer",fontSize:10,padding:"2px 6px",borderRadius:4,fontFamily:"inherit",flexShrink:0}}>
+        <button onClick={function(){ setExpanded(!expanded); setEditing(false); }}
+          style={{background:expanded?"#1E293B":"transparent",border:"1px solid "+(expanded?"#334155":"transparent"),color:"#475569",cursor:"pointer",fontSize:10,padding:"2px 6px",borderRadius:4,fontFamily:"inherit",flexShrink:0}}>
           {expanded?"▲":"▼"}
         </button>
       </div>
 
-      {/* Multi-button sub-items */}
       {habit.multiCheck&&(
         <div style={{padding:"8px 12px 10px",background:"#080f1e",borderTop:"1px solid #1E293B"}}>
           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {habit.multiCheck.map(item=>{
-              const sel=(multiSel||[]).includes(item)
+            {habit.multiCheck.map(function(item){
+              const sel=(multiSel||[]).includes(item);
               return (
-                <button key={item} onClick={()=>{
-                  const cur=multiSel||[]
-                  const next=sel?cur.filter(x=>x!==item):[...cur,item]
-                  onMultiSel(next)
-                  if(next.length===habit.multiCheck.length&&!done) onToggle()
-                  if(next.length<habit.multiCheck.length&&done) onToggle()
+                <button key={item} onClick={function(){
+                  const cur=multiSel||[];
+                  const next=sel?cur.filter(function(x){ return x!==item; }):[...cur,item];
+                  onMultiSel(next);
+                  if(next.length===habit.multiCheck.length&&!done) onToggle();
+                  if(next.length<habit.multiCheck.length&&done) onToggle();
                 }}
-                  style={{padding:"5px 8px",borderRadius:6,border:`1px solid ${sel?tabColor:"#1E293B"}`,background:sel?`${tabColor}22`:"transparent",color:sel?tabColor:"#475569",cursor:"pointer",fontSize:9.5,fontWeight:700,fontFamily:"inherit"}}>
+                  style={{padding:"5px 8px",borderRadius:6,border:"1px solid "+(sel?tabColor:"#1E293B"),background:sel?(tabColor+"22"):"transparent",color:sel?tabColor:"#475569",cursor:"pointer",fontSize:9.5,fontWeight:700,fontFamily:"inherit"}}>
                   {sel?"✓ ":""}{item}
                 </button>
-              )
+              );
             })}
           </div>
           <div style={{fontSize:8,color:"#334155",marginTop:5}}>
-            {(multiSel||[]).length}/{habit.multiCheck.length} complete{(multiSel||[]).length===habit.multiCheck.length?" · ✓":""}
+            {(multiSel||[]).length}/{habit.multiCheck.length}{(multiSel||[]).length===habit.multiCheck.length?" · done":""}
           </div>
         </div>
       )}
 
-      {/* Water slider */}
-      {habit.slider&&!done&&(
+      {(habit.slider&&!done)&&(
         <div style={{padding:"8px 14px 10px",background:"#080f1e",borderTop:"1px solid #1E293B"}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
             <span style={{fontSize:9,color:"#475569"}}>Intake</span>
             <span style={{fontSize:11,fontWeight:700,color:qty>=1000?"#10B981":qty>=500?"#D4A017":"#64748b"}}>{qty}ml / 1000ml</span>
           </div>
           <div style={{height:6,background:"#1E293B",borderRadius:3,overflow:"hidden",marginBottom:8}}>
-            <div style={{height:"100%",width:`${(qty/1000)*100}%`,background:qty>=1000?"#10B981":qty>=500?"#D4A017":tabColor,borderRadius:3,transition:"width 0.2s"}}/>
+            <div style={{height:"100%",width:((qty/1000)*100)+"%",background:qty>=1000?"#10B981":qty>=500?"#D4A017":tabColor,borderRadius:3}}/>
           </div>
           <div style={{display:"flex",gap:5}}>
-            {[0,250,500,750,1000].map(v=>(
-              <button key={v} onClick={()=>onQty(v)}
-                style={{flex:1,padding:"5px 0",borderRadius:5,border:`1px solid ${qty===v?tabColor:"#1E293B"}`,background:qty===v?`${tabColor}22`:"transparent",color:qty===v?tabColor:"#475569",cursor:"pointer",fontSize:8.5,fontWeight:700,fontFamily:"inherit"}}>
-                {v===1000?"1L":v===0?"0":v}
-              </button>
-            ))}
+            {[0,250,500,750,1000].map(function(v){
+              return (
+                <button key={v} onClick={function(){ onQty(v); }}
+                  style={{flex:1,padding:"5px 0",borderRadius:5,border:"1px solid "+(qty===v?tabColor:"#1E293B"),background:qty===v?(tabColor+"22"):"transparent",color:qty===v?tabColor:"#475569",cursor:"pointer",fontSize:8.5,fontWeight:700,fontFamily:"inherit"}}>
+                  {v===1000?"1L":v===0?"0":v}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Note/links panel */}
       {expanded&&(
         <div style={{padding:"8px 12px 10px",background:"#080f1e",borderTop:"1px solid #1E293B"}}>
           {editing?(
             <div>
               <textarea autoFocus defaultValue={note}
-                onBlur={e=>{onSaveNote(e.target.value);setEditing(false)}}
-                onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();onSaveNote(e.target.value);setEditing(false)}}}
+                onBlur={function(e){ onSaveNote(e.target.value); setEditing(false); }}
+                onKeyDown={function(e){ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); onSaveNote(e.target.value); setEditing(false); } }}
                 placeholder="Add note or link..."
-                style={{width:"100%",background:"#1E293B",border:`1px solid ${tabColor}`,borderRadius:6,color:"#f1f5f9",padding:"7px 10px",fontSize:10,fontFamily:"inherit",resize:"none",height:80,outline:"none"}}/>
+                style={{width:"100%",background:"#1E293B",border:"1px solid "+tabColor,borderRadius:6,color:"#f1f5f9",padding:"7px 10px",fontSize:10,fontFamily:"inherit",resize:"none",height:80,outline:"none"}}/>
               <div style={{fontSize:8,color:"#334155",marginTop:3}}>Enter to save</div>
             </div>
           ):note?(
             <div>
-              {note.split("\n").map((line,i)=>{
-                const parts=line.split(": ")
-                const label=parts.length>1?parts[0]:null
-                const url=parts.length>1?parts.slice(1).join(": "):line
+              {note.split("\n").map(function(line,i){
+                const parts=line.split(": ");
+                const label=parts.length>1?parts[0]:null;
+                const url=parts.length>1?parts.slice(1).join(": "):line;
                 return isLink(url)?(
                   <div key={i} style={{marginBottom:6}}>
-                    {label&&<div style={{fontSize:8,color:"#475569",marginBottom:2,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</div>}
+                    {label&&<div style={{fontSize:8,color:"#475569",marginBottom:2,textTransform:"uppercase"}}>{label}</div>}
                     <a href={url} target="_blank" rel="noreferrer"
-                      style={{fontSize:10,color:tabColor,wordBreak:"break-all",display:"block"}}>🔗 Open in Notion</a>
+                      style={{fontSize:10,color:tabColor,display:"block"}}>Open link →</a>
                   </div>
                 ):(
                   <div key={i} style={{fontSize:11,color:"#94a3b8",marginBottom:4}}>{line}</div>
-                )
+                );
               })}
-              <button onClick={()=>setEditing(true)}
+              <button onClick={function(){ setEditing(true); }}
                 style={{marginTop:4,background:"transparent",border:"none",color:"#334155",cursor:"pointer",fontSize:8,fontFamily:"inherit"}}>Edit</button>
             </div>
           ):(
-            <button onClick={()=>setEditing(true)}
+            <button onClick={function(){ setEditing(true); }}
               style={{background:"transparent",border:"1px dashed #334155",color:"#475569",padding:"6px 12px",borderRadius:6,cursor:"pointer",fontSize:10,fontFamily:"inherit",width:"100%"}}>
               + Add note or link
             </button>
@@ -275,96 +274,95 @@ function HabitItem({habit,done,streak,total,tabColor,showCat,onToggle,note,onSav
         </div>
       )}
     </div>
-  )
+  );
 }
 
-// ── App ───────────────────────────────────────────────────
 function App() {
-  const [activeTime, setActiveTime] = useState("wakeup")
-  const [activeCat,  setActiveCat]  = useState("all")
-  const [checked,    setChecked]    = useState(()=>ld("ht_checked",{}))
-  const [streaks,    setStreaks]     = useState(()=>ld("ht_streaks",{}))
-  const [lastDone,   setLastDone]   = useState(()=>ld("ht_lastdone",{}))
-  const [totalDone,  setTotalDone]  = useState(()=>ld("ht_totaldone",{}))
-  const [quantities, setQuantities] = useState(()=>ld("ht_qty",{}))
-  const [multiSels,  setMultiSels]  = useState(()=>ld("ht_multi",{}))
-  const [notes,      setNotes]      = useState(()=>{
-    const saved=ld("ht_notes",null)
-    if(saved) return saved
-    const defaults={}
-    ALL_HABITS.forEach(h=>{ if(h.defaultNote) defaults[h.id]=h.defaultNote })
-    return defaults
-  })
+  const [activeTime, setActiveTime] = useState("wakeup");
+  const [activeCat,  setActiveCat]  = useState("all");
+  const [checked,    setChecked]    = useState(function(){ return ld("ht_checked",{}); });
+  const [streaks,    setStreaks]     = useState(function(){ return ld("ht_streaks",{}); });
+  const [lastDone,   setLastDone]   = useState(function(){ return ld("ht_lastdone",{}); });
+  const [totalDone,  setTotalDone]  = useState(function(){ return ld("ht_totaldone",{}); });
+  const [quantities, setQuantities] = useState(function(){ return ld("ht_qty",{}); });
+  const [multiSels,  setMultiSels]  = useState(function(){ return ld("ht_multi",{}); });
+  const [notes,      setNotes]      = useState(function(){
+    const saved=ld("ht_notes",{});
+    const defaults={};
+    ALL_HABITS.forEach(function(h){ if(h.defaultNote) defaults[h.id]=h.defaultNote; });
+    return Object.assign({},defaults,saved);
+  });
 
-  useEffect(()=>{sv("ht_checked",   checked)   },[checked])
-  useEffect(()=>{sv("ht_streaks",   streaks)   },[streaks])
-  useEffect(()=>{sv("ht_lastdone",  lastDone)  },[lastDone])
-  useEffect(()=>{sv("ht_totaldone", totalDone) },[totalDone])
-  useEffect(()=>{sv("ht_qty",       quantities)},[quantities])
-  useEffect(()=>{sv("ht_multi",     multiSels) },[multiSels])
-  useEffect(()=>{sv("ht_notes",     notes)     },[notes])
+  useEffect(function(){ sv("ht_checked",   checked);   },[checked]);
+  useEffect(function(){ sv("ht_streaks",   streaks);   },[streaks]);
+  useEffect(function(){ sv("ht_lastdone",  lastDone);  },[lastDone]);
+  useEffect(function(){ sv("ht_totaldone", totalDone); },[totalDone]);
+  useEffect(function(){ sv("ht_qty",       quantities);},[quantities]);
+  useEffect(function(){ sv("ht_multi",     multiSels); },[multiSels]);
+  useEffect(function(){ sv("ht_notes",     notes);     },[notes]);
 
-  useEffect(()=>{
-    const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10)
-    const upd={...streaks}; let changed=false
-    Object.keys(lastDone).forEach(id=>{
-      if(lastDone[id]!==TODAY&&lastDone[id]!==yesterday&&(upd[id]||0)>0){upd[id]=0;changed=true}
-    })
-    if(changed) setStreaks(upd)
-  },[])
+  useEffect(function(){
+    const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+    const upd=Object.assign({},streaks); let changed=false;
+    Object.keys(lastDone).forEach(function(id){
+      if(lastDone[id]!==TODAY&&lastDone[id]!==yesterday&&(upd[id]||0)>0){ upd[id]=0; changed=true; }
+    });
+    if(changed) setStreaks(upd);
+  },[]);
 
-  const toggle=(habit)=>{
-    const ck=getPeriodKey(habit)
-    const nowDone=!checked[ck]
-    setChecked(prev=>({...prev,[ck]:nowDone}))
+  function toggle(habit){
+    const ck=getPeriodKey(habit);
+    const nowDone=!checked[ck];
+    setChecked(function(prev){ return Object.assign({},prev,{[ck]:nowDone}); });
     if(nowDone){
-      const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10)
-      const cur=streaks[habit.id]||0
-      const newS=habit.freq==="daily"&&lastDone[habit.id]===yesterday?cur+1:habit.freq==="daily"?1:cur+1
-      setStreaks(prev=>({...prev,[habit.id]:newS}))
-      setLastDone(prev=>({...prev,[habit.id]:TODAY}))
-      setTotalDone(prev=>({...prev,[habit.id]:(prev[habit.id]||0)+1}))
+      const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+      const cur=streaks[habit.id]||0;
+      const newS=habit.freq==="daily"&&lastDone[habit.id]===yesterday?cur+1:habit.freq==="daily"?1:cur+1;
+      setStreaks(function(prev){ return Object.assign({},prev,{[habit.id]:newS}); });
+      setLastDone(function(prev){ return Object.assign({},prev,{[habit.id]:TODAY}); });
+      setTotalDone(function(prev){ return Object.assign({},prev,{[habit.id]:(prev[habit.id]||0)+1}); });
     } else {
-      setStreaks(prev=>({...prev,[habit.id]:Math.max(0,(prev[habit.id]||1)-1)}))
-      setTotalDone(prev=>({...prev,[habit.id]:Math.max(0,(prev[habit.id]||1)-1)}))
-      setLastDone(prev=>{const n={...prev};delete n[habit.id];return n})
-      if(habit.slider) setQuantities(prev=>({...prev,[habit.id]:0}))
-      if(habit.multiCheck) setMultiSels(prev=>({...prev,[habit.id]:[]}))
+      setStreaks(function(prev){ return Object.assign({},prev,{[habit.id]:Math.max(0,(prev[habit.id]||1)-1)}); });
+      setTotalDone(function(prev){ return Object.assign({},prev,{[habit.id]:Math.max(0,(prev[habit.id]||1)-1)}); });
+      setLastDone(function(prev){ const n=Object.assign({},prev); delete n[habit.id]; return n; });
+      if(habit.slider) setQuantities(function(prev){ return Object.assign({},prev,{[habit.id]:0}); });
+      if(habit.multiCheck) setMultiSels(function(prev){ return Object.assign({},prev,{[habit.id]:[]}); });
     }
   }
 
-  const setQty=(habit,val)=>{
-    setQuantities(prev=>({...prev,[habit.id]:val}))
-    const ck=getPeriodKey(habit)
-    if(val>=1000&&!checked[ck]) toggle(habit)
-    if(val<1000&&checked[ck])   toggle(habit)
+  function setQty(habit,val){
+    setQuantities(function(prev){ return Object.assign({},prev,{[habit.id]:val}); });
+    const ck=getPeriodKey(habit);
+    if(val>=1000&&!checked[ck]) toggle(habit);
+    if(val<1000&&checked[ck])   toggle(habit);
   }
 
   const visible=ALL_HABITS.filter(isVisibleToday)
-    .filter(h=>activeTime==="all"||h.slot===activeTime)
-    .filter(h=>activeCat==="all"||h.cat===activeCat)
+    .filter(function(h){ return activeTime==="all"||h.slot===activeTime; })
+    .filter(function(h){ return activeCat==="all"||h.cat===activeCat; });
 
-  const pending   = visible.filter(h=>!checked[getPeriodKey(h)])
-  const completed = visible.filter(h=> checked[getPeriodKey(h)])
+  const pending   = visible.filter(function(h){ return !checked[getPeriodKey(h)]; });
+  const completed = visible.filter(function(h){ return  checked[getPeriodKey(h)]; });
 
-  const timePending=(slotId)=>ALL_HABITS.filter(isVisibleToday)
-    .filter(h=>slotId==="all"||h.slot===slotId)
-    .filter(h=>activeCat==="all"||h.cat===activeCat)
-    .filter(h=>!checked[getPeriodKey(h)]).length
+  function timePending(slotId){
+    return ALL_HABITS.filter(isVisibleToday)
+      .filter(function(h){ return slotId==="all"||h.slot===slotId; })
+      .filter(function(h){ return activeCat==="all"||h.cat===activeCat; })
+      .filter(function(h){ return !checked[getPeriodKey(h)]; }).length;
+  }
 
-  const totalToday   =ALL_HABITS.filter(isVisibleToday).length
-  const totalComplete=ALL_HABITS.filter(isVisibleToday).filter(h=>checked[getPeriodKey(h)]).length
-  const tab=TIME_TABS.find(t=>t.id===activeTime)
+  const totalToday   =ALL_HABITS.filter(isVisibleToday).length;
+  const totalComplete=ALL_HABITS.filter(isVisibleToday).filter(function(h){ return checked[getPeriodKey(h)]; }).length;
+  const tab=TIME_TABS.find(function(t){ return t.id===activeTime; });
 
   return (
     <div style={{minHeight:"100vh",background:"#020817",color:"#f1f5f9",display:"flex",flexDirection:"column"}}>
       <div style={{maxWidth:520,margin:"0 auto",width:"100%",display:"flex",flexDirection:"column",minHeight:"100vh"}}>
 
-        {/* Header */}
         <div style={{padding:"12px 14px 0",background:"#030d1c",borderBottom:"1px solid #0F172A"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div>
-              <div style={{fontSize:9,color:"#D4A017",letterSpacing:"0.2em",textTransform:"uppercase",fontWeight:700}}>● DAILY SYSTEM</div>
+              <div style={{fontSize:9,color:"#D4A017",letterSpacing:"0.2em",textTransform:"uppercase",fontWeight:700}}>DAILY SYSTEM</div>
               <div style={{fontSize:18,fontWeight:900,color:"#f8fafc"}}>Habit Tracker</div>
             </div>
             <div style={{textAlign:"right"}}>
@@ -373,75 +371,79 @@ function App() {
             </div>
           </div>
           <div style={{display:"flex"}}>
-            {TIME_TABS.map(t=>{
-              const cnt=t.id==="goals"?0:timePending(t.id)
+            {TIME_TABS.map(function(t){
+              const cnt=t.id==="goals"?0:timePending(t.id);
               return (
-                <button key={t.id} onClick={()=>setActiveTime(t.id)}
-                  style={{flex:1,padding:"7px 2px",background:"transparent",border:"none",borderBottom:activeTime===t.id?`2px solid ${t.color}`:"2px solid transparent",color:activeTime===t.id?t.color:"#475569",cursor:"pointer",fontFamily:"inherit",fontSize:8,fontWeight:700,textAlign:"center"}}>
-                  <div style={{fontSize:13}}>{t.emoji}</div>
+                <button key={t.id} onClick={function(){ setActiveTime(t.id); }}
+                  style={{flex:1,padding:"7px 2px",background:"transparent",border:"none",borderBottom:activeTime===t.id?"2px solid "+t.color:"2px solid transparent",color:activeTime===t.id?t.color:"#475569",cursor:"pointer",fontFamily:"inherit",fontSize:8,fontWeight:700,textAlign:"center"}}>
                   <div style={{marginTop:1}}>{t.label}</div>
                   {cnt>0&&<div style={{fontSize:8,fontWeight:900,color:t.color}}>{cnt}</div>}
                 </button>
-              )
+              );
             })}
           </div>
         </div>
 
-        {/* Category filter */}
         {activeTime!=="goals"&&(
           <div style={{display:"flex",background:"#050e1c",borderBottom:"1px solid #1E293B"}}>
-            {CAT_TABS.map(c=>(
-              <button key={c.id} onClick={()=>setActiveCat(c.id)}
-                style={{flex:1,padding:"6px 2px",background:activeCat===c.id?"#0c1524":"transparent",border:"none",borderBottom:activeCat===c.id?`2px solid ${c.color}`:"2px solid transparent",color:activeCat===c.id?c.color:"#334155",cursor:"pointer",fontFamily:"inherit",fontSize:8.5,fontWeight:700}}>
-                {c.label}
-              </button>
-            ))}
+            {CAT_TABS.map(function(c){
+              return (
+                <button key={c.id} onClick={function(){ setActiveCat(c.id); }}
+                  style={{flex:1,padding:"6px 2px",background:activeCat===c.id?"#0c1524":"transparent",border:"none",borderBottom:activeCat===c.id?"2px solid "+c.color:"2px solid transparent",color:activeCat===c.id?c.color:"#334155",cursor:"pointer",fontFamily:"inherit",fontSize:8.5,fontWeight:700}}>
+                  {c.label}
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {/* Content */}
         {activeTime==="goals"?<GoalsView/>:(
           <div style={{flex:1,overflowY:"auto",padding:"8px 12px"}}>
             {visible.length===0&&(
               <div style={{textAlign:"center",color:"#334155",padding:"30px 0",fontSize:11}}>No habits for this slot</div>
             )}
-            {pending.map(habit=>(
-              <HabitItem key={habit.id} habit={habit} done={false}
-                streak={streaks[habit.id]||0} total={totalDone[habit.id]||0}
-                tabColor={tab.color} showCat={activeCat==="all"}
-                note={notes[habit.id]||""} onSaveNote={val=>setNotes(prev=>({...prev,[habit.id]:val}))}
-                qty={quantities[habit.id]||0} onQty={val=>setQty(habit,val)}
-                multiSel={multiSels[habit.id]||[]} onMultiSel={val=>setMultiSels(prev=>({...prev,[habit.id]:val}))}
-                onToggle={()=>toggle(habit)}/>
-            ))}
+            {pending.map(function(habit){
+              return (
+                <HabitItem key={habit.id} habit={habit} done={false}
+                  streak={streaks[habit.id]||0} total={totalDone[habit.id]||0}
+                  tabColor={tab.color} showCat={activeCat==="all"}
+                  note={notes[habit.id]||""} onSaveNote={function(val){ setNotes(function(prev){ return Object.assign({},prev,{[habit.id]:val}); }); }}
+                  qty={quantities[habit.id]||0} onQty={function(val){ setQty(habit,val); }}
+                  multiSel={multiSels[habit.id]||[]} onMultiSel={function(val){ setMultiSels(function(prev){ return Object.assign({},prev,{[habit.id]:val}); }); }}
+                  onToggle={function(){ toggle(habit); }}/>
+              );
+            })}
             {completed.length>0&&(
               <div style={{marginTop:10}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",background:"#0c1524",borderRadius:6,marginBottom:6}}>
-                  <span style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"0.1em"}}>✓ Done ({completed.length})</span>
+                  <span style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"0.1em"}}>Done ({completed.length})</span>
                   <div style={{flex:1,height:1,background:"#1E293B"}}/>
                   <span style={{fontSize:8,color:"#334155"}}>tap to untick</span>
                 </div>
-                {completed.map(habit=>(
-                  <HabitItem key={habit.id} habit={habit} done={true}
-                    streak={streaks[habit.id]||0} total={totalDone[habit.id]||0}
-                    tabColor={tab.color} showCat={activeCat==="all"}
-                    note={notes[habit.id]||""} onSaveNote={val=>setNotes(prev=>({...prev,[habit.id]:val}))}
-                    qty={quantities[habit.id]||0} onQty={val=>setQty(habit,val)}
-                    multiSel={multiSels[habit.id]||[]} onMultiSel={val=>setMultiSels(prev=>({...prev,[habit.id]:val}))}
-                    onToggle={()=>toggle(habit)}/>
-                ))}
+                {completed.map(function(habit){
+                  return (
+                    <HabitItem key={habit.id} habit={habit} done={true}
+                      streak={streaks[habit.id]||0} total={totalDone[habit.id]||0}
+                      tabColor={tab.color} showCat={activeCat==="all"}
+                      note={notes[habit.id]||""} onSaveNote={function(val){ setNotes(function(prev){ return Object.assign({},prev,{[habit.id]:val}); }); }}
+                      qty={quantities[habit.id]||0} onQty={function(val){ setQty(habit,val); }}
+                      multiSel={multiSels[habit.id]||[]} onMultiSel={function(val){ setMultiSels(function(prev){ return Object.assign({},prev,{[habit.id]:val}); }); }}
+                      onToggle={function(){ toggle(habit); }}/>
+                  );
+                })}
               </div>
             )}
           </div>
         )}
 
-        {/* Footer */}
         <div style={{padding:"8px 12px",background:"#030d1c",borderTop:"1px solid #1E293B",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{fontSize:8.5,color:"#334155"}}>Streaks reset if you miss a day</div>
           {activeTime!=="goals"&&(
-            <button onClick={()=>{
-              if(confirm("Reset all visible habits for today?")) {
-                const n={...checked}; visible.forEach(h=>delete n[getPeriodKey(h)]); setChecked(n)
+            <button onClick={function(){
+              if(confirm("Reset all visible habits for today?")){
+                const n=Object.assign({},checked);
+                visible.forEach(function(h){ delete n[getPeriodKey(h)]; });
+                setChecked(n);
               }
             }} style={{background:"transparent",border:"1px solid #1E293B",color:"#334155",padding:"4px 10px",borderRadius:5,cursor:"pointer",fontSize:9,fontFamily:"inherit"}}>
               Reset today
@@ -451,10 +453,10 @@ function App() {
 
       </div>
     </div>
-  )
+  );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
