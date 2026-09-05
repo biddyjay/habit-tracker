@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Habit Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -0.01em; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: #E6E8EB; }
+::-webkit-scrollbar-thumb { background: #9BA1A8; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function getLocalDate() {
+  var d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+const TODAY     = getLocalDate();
+const TODAY_DOW = new Date().getDay();
+const TODAY_DOM = new Date().getDate();
+
+const TIME_TABS = [
+  { id:"all",    label:"ALL",     color:"#12B3AC" },
+  { id:"wakeup", label:"SUNRISE", color:"#12B3AC" },
+  { id:"am",     label:"AM",      color:"#12B3AC" },
+  { id:"pm",     label:"PM",      color:"#12B3AC" },
+  { id:"night",  label:"SUNSET",  color:"#12B3AC" },
+  { id:"weekly", label:"WEEKLY",  color:"#12B3AC" },
+  { id:"goals",  label:"GOALS",   color:"#12B3AC" },
+];
+
+
+
+const CAT_COLOR = { health:"#12B3AC", exercise:"#12B3AC", spirituality:"#12B3AC", manifestation:"#12B3AC", work:"#12B3AC" };
+const CAT_LABEL = { health:"Health", exercise:"Exercise", spirituality:"Spirituality", manifestation:"Manifestation", work:"Work" };
+
+const NOTE_WU1 = "1st Thing: https://www.notion.so/1st-thing-34e47681ffb1806bb35ce011d9de749a\nDesire: https://www.notion.so/Statement-of-Desire-34e47681ffb1808ca4d3c2ef8dbac2cd\nAffirmation: https://www.notion.so/Morning-Affirmation-26047681ffb18020b065da6b2613488d";
+const NOTE_WU3 = "Isha Kriya: https://www.youtube.com/watch?v=PsKEgrx0Xwc\nBreathing: https://www.youtube.com/watch?v=tybOi4hjZFQ";
+const NOTE_NI4 = "Statement of Desire: https://www.notion.so/Statement-of-Desire-34e47681ffb1808ca4d3c2ef8dbac2cd\nAffirmations: https://www.notion.so/Affirmations-26047681ffb18020b065da6b2613488d\nPrayer: https://www.notion.so/Prayer-18747681ffb180d085bcf8c74c64e020";
+const NOTE_NI1 = "Sunset Session: https://www.notion.so/Sunset-Session-1db47681ffb18085b27fc24e0a9fca3e\nReel 1: https://www.instagram.com/reel/DbDK644BX4z/?igsi=czFidmpmaGZ0Zjky\nReel 2: https://www.instagram.com/reel/DMuzjjiB0ak/?igsi=cWMxZGNpdGRyMjA4";
+const NOTE_WU5 = "Skin Protocol\n1. Cetaphil — splash face, gentle wash, rinse\n2. Buffet — few drops, thin layer, let it sink in\n3. Squalane — 2–3 drops onto slightly damp skin, press in (skip if it feels heavy in the heat)";
+const NOTE_WU2 = "Activation: https://www.instagram.com/reel/DW60qjAgAQ3/?igsi=MTliamE1N3YycDc3aw==\nPull Ups: https://www.instagram.com/reel/DXmCjSpDhve/?igsi=MW0xdm54cXpia2djdA==";
+const NOTES_VERSION = 6; // bump when curated defaultNotes change, to force-refresh stored copies
+const NOTE_NI3 = "Skin Protocol\n\nMost nights (base)\n1. Cetaphil — wash, rinse\n2. Buffet — thin layer, let it sink in\n3. Squalane — 2–3 drops on slightly damp skin, press in\n4. Tallow — dry patches only (jaw, beard edges), never cheek/chin\n\n2–3 nights/week (treatment) — spaced out, never back-to-back\n1. Cetaphil — wash, rinse\n2. Lactic Acid 10% — thin layer (skip Buffet these nights)\n3. Squalane — on slightly damp skin\n4. Tallow — dry patches only\n\nRules\n• Lactic never two nights in a row\n• Skip Buffet on Lactic nights\n• Tallow always last — nothing absorbs through it";
+
+const ALL_HABITS = [
+  { id:"wu6", label:"3-6-9",             cat:"manifestation", slot:"wakeup", freq:"daily"                                                                                },
+  { id:"wu5", label:"Hygiene",            cat:"health",        slot:"wakeup", freq:"daily",  multiCheck:["Brush Teeth","Skin Protocol","Hair Spray"], defaultNote:NOTE_WU5 },
+  { id:"wu1", label:"Morning Statements", cat:"manifestation", slot:"wakeup", freq:"daily",  multiCheck:["1st Thing","Statement of Desire","Affirmation"],           defaultNote:NOTE_WU1 },
+  { id:"wu2", label:"Sunrise Session",    cat:"exercise",      slot:"wakeup", freq:"daily",  multiCheck:["Trampoline","Push Ups","Activation","Pull Ups"],          defaultNote:NOTE_WU2 },
+  { id:"wu3", label:"Morning Practice",   cat:"spirituality",  slot:"wakeup", freq:"daily",  multiCheck:["Isha Kriya","Prayer","Breathing","Cell Song"],             defaultNote:NOTE_WU3 },
+  { id:"am4", label:"3-6-9",             cat:"manifestation", slot:"am",     freq:"daily"                                                                                },
+  { id:"wu4", label:"Cleanse",            cat:"health",        slot:"am",     freq:"daily",  multiCheck:["Lemon Water","Celery Juice","Detox Smoothie"]                    },
+  { id:"am1", label:"1L Hydration",       cat:"health",        slot:"am",     freq:"daily",  slider:true                                                                  },
+  { id:"am2", label:"Gym Session",        cat:"exercise",      slot:"am",     freq:"daily",  multiCheck:["21 Daily","Jumping Rope"]                                        },
+  { id:"am3", label:"Supplements",        cat:"health",        slot:"am",     freq:"daily",  multiCheck:["Vit D","Vit C","Vit B12","Zinc","Magnesium","Tongkat Ali","Licorice","Silver Hydrosol","Omega 3","Boron","Ashwaganda"] },
+  { id:"pm1", label:"1L Hydration",       cat:"health",        slot:"pm",     freq:"daily",  slider:true                                                                  },
+  { id:"pm3", label:"Home Session",       cat:"exercise",      slot:"pm",     freq:"daily",  multiCheck:["Biceps","Grip"]                                                 },
+  { id:"ni2", label:"3-6-9",             cat:"manifestation", slot:"night",  freq:"daily"                                                                                },
+  { id:"ni1", label:"Sunset Session",     cat:"exercise",      slot:"night",  freq:"daily",  multiCheck:["Incline Walk","Jaw","Face","Neck"],           defaultNote:NOTE_NI1                                   },
+  { id:"wk1", label:"Admin",              cat:"work",          slot:"night",  freq:"daily",  multiCheck:["Post 21 Daily","Trading Journaling"]                            },
+  { id:"ni3", label:"Evening Routine",    cat:"health",        slot:"night",  freq:"daily",  multiCheck:["Glasses","Skin Protocol","Magnesium","Share 3x"],        defaultNote:NOTE_NI3 },
+  { id:"ni4", label:"Closing Practice",   cat:"manifestation", slot:"night",  freq:"daily",  multiCheck:["Statement of Desire","Chapter","Affirmation","Prayer","Cell Song"], defaultNote:NOTE_NI4 },
+  { id:"we1", label:"Hair Protocol",      cat:"health",        slot:"weekly", freq:"weekly"                                                                               },
+  { id:"we2", label:"Goal Review",        cat:"manifestation", slot:"weekly", freq:"weekly"                                                                               },
+  { id:"we3", label:"Weekly Planning",    cat:"work",          slot:"weekly", freq:"weekly"                                                                               },
+  { id:"we4", label:"Fast",               cat:"health",        slot:"weekly", freq:"weekly"                                                                               },
+];
+
+const GOALS = [
+  { id:"g1", label:"Salary >300k",                       category:"Financial" },
+  { id:"g2", label:"Bonus >200k",                        category:"Financial" },
+  { id:"g3", label:"ESOP >1M",                           category:"Financial" },
+  { id:"g4", label:"Consistently earn >100k per month", category:"Financial" },
+  { id:"g6", label:"2% ownership of Axiym",              category:"Financial" },
+  { id:"g5", label:"Best physical shape of my life",    category:"Physical"  },
+  { id:"g9",  label:"Hair transplant",                      category:"Physical"  },
+  { id:"g10", label:"Regain full discipline",                category:"Spiritual / Mental" },
+  { id:"g11", label:"Love and accept myself",                category:"Spiritual / Mental" },
+  { id:"g12", label:"Connect to God and higher purpose",     category:"Spiritual / Mental" },
+  { id:"gh1", label:"Face massage — start by Oct",           category:"Health" },
+  { id:"gh2", label:"Guasha practice — start by Oct",        category:"Health" },
+  { id:"gh3", label:"Hair treatment — start by Oct",         category:"Health" },
+  { id:"gr1", label:"250k followers across platforms in 1yr", category:"Growth" },
+  { id:"gr2", label:"Grow sustainable trading income",        category:"Growth" },
+];
+
+function getPeriodKey(h) {
+  if (h.freq === "weekly")  return h.id + "_W" + getWeekKey();
+  if (h.freq === "monthly") return h.id + "_M" + getMonthKey();
+  return h.id + "_" + getLocalDate();
+}
+function getWeekKey() {
+  var d = new Date(), s = new Date(d.getFullYear(), 0, 1);
+  return d.getFullYear() + "W" + Math.ceil(((d - s) / 86400000 + s.getDay() + 1) / 7);
+}
+function getMonthKey() {
+  var d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
+function isVisibleToday(h) {
+  if (h.freq === "daily")   return true;
+  if (h.freq === "weekly")  return h.dow === undefined || h.dow === TODAY_DOW;
+  if (h.freq === "monthly") return h.dom === undefined || h.dom === TODAY_DOM;
+  return true;
+}
+function isUrl(t) { try { new URL(t); return true; } catch(e) { return false; } }
+function ld(k, d) { try { return JSON.parse(localStorage.getItem(k) || JSON.stringify(d)); } catch(e) { return d; } }
+function sv(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
+
+function GoalsView() {
+  const [checked, setChecked] = useState(function() { return ld("ht_goals", {}); });
+  useEffect(function() { sv("ht_goals", checked); }, [checked]);
+  var cats = [];
+  GOALS.forEach(function(g) { if (cats.indexOf(g.category) === -1) cats.push(g.category); });
+  var doneCount = GOALS.filter(function(g) { return checked[g.id]; }).length;
+  return (
+    <div style={{flex:1, overflowY:"auto", padding:"10px 12px"}}>
+      <div style={{fontSize:10, color:"#12B3AC", fontWeight:700, marginBottom:12}}>{doneCount}/{GOALS.length} achieved</div>
+      {cats.map(function(cat) {
+        return (
+          <div key={cat} style={{marginBottom:16}}>
+            <div style={{fontSize:9, fontWeight:700, color:"#12B3AC", textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:6}}>{cat}</div>
+            {GOALS.filter(function(g) { return g.category === cat; }).map(function(goal) {
+              var isDone = !!checked[goal.id];
+              return (
+                <div key={goal.id} onClick={function() { setChecked(function(p) { var n = Object.assign({}, p); n[goal.id] = !p[goal.id]; return n; }); }}
+                  style={{display:"flex", alignItems:"center", gap:10, padding:"11px 14px", marginBottom:5, borderRadius:9, cursor:"pointer", background:isDone ? "#12B3AC18" : "#F5F6F8", border:"1px solid " + (isDone ? "#12B3AC" : "#E6E8EB")}}>
+                  <div style={{width:18, height:18, borderRadius:5, border:"1.5px solid " + (isDone ? "#12B3AC" : "#6B7280"), background:isDone ? "#12B3AC" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>
+                    {isDone && <span style={{color:"#fff", fontSize:11, fontWeight:800}}>✓</span>}
+                  </div>
+                  <span style={{fontSize:13, fontWeight:600, color:isDone ? "#9BA1A8" : "#17191C", textDecoration:isDone ? "line-through" : "none", flex:1}}>{goal.label}</span>
+                  {isDone && <span>★</span>}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function HabitItem(props) {
+  var habit = props.habit, done = props.done, streak = props.streak, total = props.total;
+  var tabColor = props.tabColor, showCat = props.showCat, onToggle = props.onToggle;
+  var note = props.note, onSaveNote = props.onSaveNote;
+  var qty = props.qty, onQty = props.onQty;
+  var multiSel = props.multiSel, onMultiSel = props.onMultiSel;
+
+  const [expanded, setExpanded] = useState(false);
+  const [editing,  setEditing]  = useState(false);
+  var catColor = CAT_COLOR[habit.cat];
+
+  return (
+    <div style={{marginBottom:5, borderRadius:9, overflow:"hidden", border:"1px solid " + (done ? tabColor + "44" : "#E6E8EB")}}>
+
+      <div style={{display:"flex", alignItems:"center", gap:10, padding:"10px 12px", background:done ? "#F0FBFA" : "#F5F6F8", opacity:done ? 0.5 : 1}}>
+        <div onClick={onToggle} style={{width:16, height:16, borderRadius:4, border:"1.5px solid " + (done ? tabColor : "#6B7280"), background:done ? tabColor : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, cursor:"pointer"}}>
+          {done && <span style={{color:"#fff", fontSize:9, fontWeight:800}}>✓</span>}
+        </div>
+        <div style={{flex:1, minWidth:0}}>
+          <div style={{display:"flex", alignItems:"center", gap:5, flexWrap:"wrap"}}>
+            {showCat && <span style={{fontSize:7.5, background:catColor + "22", color:catColor, padding:"1px 5px", borderRadius:3, fontWeight:700, flexShrink:0}}>{CAT_LABEL[habit.cat]}</span>}
+            <span style={{fontSize:12, color:done ? "#6B7280" : "#17191C", textDecoration:done ? "line-through" : "none"}}>{habit.label}</span>
+          </div>
+          <div style={{fontSize:8, color:"#9BA1A8", marginTop:1}}>
+            {total > 0 && <span>{total}x this year</span>}
+            {done && <span> · tap to untick</span>}
+          </div>
+          {(note && !expanded) && (
+            <div onClick={function(e) { e.stopPropagation(); setExpanded(true); }} style={{fontSize:9, color:"#9BA1A8", marginTop:3, cursor:"pointer"}}>tap for links</div>
+          )}
+        </div>
+        {streak > 0 && (
+          <div style={{background:"#E6E8EB", padding:"3px 7px", borderRadius:10, flexShrink:0}}>
+            <span style={{fontSize:10, fontWeight:700, color:"#12B3AC"}}>{streak}x</span>
+          </div>
+        )}
+        <button onClick={function() { setExpanded(!expanded); setEditing(false); }}
+          style={{background:expanded ? "#E6E8EB" : "transparent", border:"1px solid " + (expanded ? "#9BA1A8" : "transparent"), color:"#6B7280", cursor:"pointer", fontSize:10, padding:"2px 6px", borderRadius:4, fontFamily:"inherit", flexShrink:0}}>
+          {expanded ? "▲" : "▼"}
+        </button>
+      </div>
+
+      {habit.multiCheck && (
+        <div style={{padding:"8px 12px 10px", background:"#FAFBFC", borderTop:"1px solid #E6E8EB"}}>
+          <div style={{display:"flex", gap:5, flexWrap:"wrap"}}>
+            {habit.multiCheck.map(function(item) {
+              var sel = (multiSel || []).indexOf(item) !== -1;
+              return (
+                <button key={item} onClick={function() {
+                  var cur = multiSel || [];
+                  var next = sel ? cur.filter(function(x) { return x !== item; }) : cur.concat([item]);
+                  onMultiSel(next);
+                  if (next.length === habit.multiCheck.length && !done) onToggle();
+                  if (next.length < habit.multiCheck.length && done) onToggle();
+                }} style={{padding:"5px 8px", borderRadius:6, border:"1px solid " + (done ? "#9BA1A8" : sel ? tabColor : "#E6E8EB"), background:done ? "#EFF1F3" : sel ? tabColor + "22" : "transparent", color:done ? "#6B7280" : sel ? tabColor : "#6B7280", cursor:"pointer", fontSize:9.5, fontWeight:700, fontFamily:"inherit"}}>
+                  {sel ? "✓ " : ""}{item}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{fontSize:8, color:"#9BA1A8", marginTop:5}}>
+            {(multiSel || []).length}/{habit.multiCheck.length}{(multiSel || []).length === habit.multiCheck.length ? " · done" : ""}
+          </div>
+        </div>
+      )}
+
+      {(habit.slider && !done) && (
+        <div style={{padding:"8px 14px 10px", background:"#FAFBFC", borderTop:"1px solid #E6E8EB"}}>
+          <div style={{display:"flex", justifyContent:"space-between", marginBottom:4}}>
+            <span style={{fontSize:9, color:"#6B7280"}}>Intake</span>
+            <span style={{fontSize:11, fontWeight:700, color:qty >= 1000 ? "#12B3AC" : qty >= 500 ? "#12B3AC" : "#9BA1A8"}}>{qty}ml / 1000ml</span>
+          </div>
+          <div style={{height:6, background:"#E6E8EB", borderRadius:3, overflow:"hidden", marginBottom:8}}>
+            <div style={{height:"100%", width:((qty / 1000) * 100) + "%", background:qty >= 1000 ? "#12B3AC" : qty >= 500 ? "#12B3AC" : tabColor, borderRadius:3}} />
+          </div>
+          <div style={{display:"flex", gap:6}}>
+            {[500, 1000].map(function(v) {
+              return (
+                <button key={v} onClick={function() { onQty(qty === v ? 0 : v); }}
+                  style={{flex:1, padding:"7px 0", borderRadius:6, border:"1px solid " + (qty >= v ? tabColor : "#E6E8EB"), background:qty >= v ? tabColor + "22" : "transparent", color:qty >= v ? tabColor : "#6B7280", cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:"inherit"}}>
+                  {v === 1000 ? "1L" : "500ml"}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {expanded && (
+        <div style={{padding:"8px 12px 10px", background:"#FAFBFC", borderTop:"1px solid #E6E8EB"}}>
+          {editing ? (
+            <div>
+              <textarea autoFocus defaultValue={note}
+                onBlur={function(e) { onSaveNote(e.target.value); setEditing(false); }}
+                onKeyDown={function(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSaveNote(e.target.value); setEditing(false); } }}
+                placeholder="Add note or link..."
+                style={{width:"100%", background:"#E6E8EB", border:"1px solid " + tabColor, borderRadius:6, color:"#17191C", padding:"7px 10px", fontSize:10, fontFamily:"inherit", resize:"none", height:80, outline:"none"}} />
+              <div style={{fontSize:8, color:"#9BA1A8", marginTop:3}}>Enter to save</div>
+            </div>
+          ) : note ? (
+            <div>
+              {note.split("\n").map(function(line, i) {
+                var parts = line.split(": ");
+                var label = parts.length > 1 ? parts[0] : null;
+                var url   = parts.length > 1 ? parts.slice(1).join(": ") : line;
+                return isUrl(url) ? (
+                  <div key={i} style={{marginBottom:6}}>
+                    {label && <div style={{fontSize:8, color:"#6B7280", marginBottom:2, textTransform:"uppercase"}}>{label}</div>}
+                    <a href={url} target="_blank" rel="noreferrer" style={{fontSize:10, color:tabColor, display:"block"}}>Open link →</a>
+                  </div>
+                ) : (
+                  <div key={i} style={{fontSize:11, color:"#6B7280", marginBottom:4}}>{line}</div>
+                );
+              })}
+              <button onClick={function() { setEditing(true); }} style={{marginTop:4, background:"transparent", border:"none", color:"#9BA1A8", cursor:"pointer", fontSize:8, fontFamily:"inherit"}}>Edit</button>
+            </div>
+          ) : (
+            <button onClick={function() { setEditing(true); }}
+              style={{background:"transparent", border:"1px dashed #9BA1A8", color:"#6B7280", padding:"6px 12px", borderRadius:6, cursor:"pointer", fontSize:10, fontFamily:"inherit", width:"100%"}}>
+              + Add note or link
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [activeTime, setActiveTime] = useState("wakeup");
+  const [checked,    setChecked]    = useState(function() { return ld("ht_checked", {}); });
+  const [streaks,    setStreaks]     = useState(function() { return ld("ht_streaks", {}); });
+  const [lastDone,   setLastDone]   = useState(function() { return ld("ht_lastdone", {}); });
+  const [totalDone,  setTotalDone]  = useState(function() { return ld("ht_totaldone", {}); });
+  const [quantities, setQuantities] = useState(function() { return ld("ht_qty_" + getLocalDate(), {}); });
+  const [multiSels,  setMultiSels]  = useState(function() { return ld("ht_multi_" + getLocalDate(), {}); });
+  const [perfectDays, setPerfectDays] = useState(function() { return ld("ht_perfect", {streak:0, yearCount:0, lastPerfect:"", lastChecked:""}); });
+  const [notes,      setNotes]      = useState(function() {
+    var saved    = ld("ht_notes", {});
+    var ver      = ld("ht_notes_ver", 0);
+    var defaults = {};
+    ALL_HABITS.forEach(function(h) { if (h.defaultNote) defaults[h.id] = h.defaultNote; });
+    if (ver < NOTES_VERSION) {
+      // Curated links changed: let defaults win for habits that have one,
+      // keep user-authored notes on habits without a default. Runs once per bump.
+      var migrated = Object.assign({}, saved, defaults);
+      sv("ht_notes", migrated);
+      sv("ht_notes_ver", NOTES_VERSION);
+      return migrated;
+    }
+    return Object.assign({}, defaults, saved);
+  });
+
+  useEffect(function() { sv("ht_checked",   checked);    }, [checked]);
+  useEffect(function() { sv("ht_streaks",   streaks);    }, [streaks]);
+  useEffect(function() { sv("ht_lastdone",  lastDone);   }, [lastDone]);
+  useEffect(function() { sv("ht_totaldone", totalDone);  }, [totalDone]);
+  useEffect(function() { sv("ht_qty_" + getLocalDate(), quantities); }, [quantities]);
+  useEffect(function() { sv("ht_multi_" + getLocalDate(), multiSels);  }, [multiSels]);
+  useEffect(function() { sv("ht_perfect",   perfectDays); }, [perfectDays]);
+  useEffect(function() { sv("ht_notes",     notes);      }, [notes]);
+
+  useEffect(function() {
+    var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    var upd = Object.assign({}, streaks);
+    var changed = false;
+    Object.keys(lastDone).forEach(function(id) {
+      if (lastDone[id] !== TODAY && lastDone[id] !== yesterday && (upd[id] || 0) > 0) {
+        upd[id] = 0; changed = true;
+      }
+    });
+    if (changed) setStreaks(upd);
+  }, []);
+
+  // Check perfect day completion
+  useEffect(function() {
+    var dailyHabits = ALL_HABITS.filter(isVisibleToday).filter(function(h) { return h.freq === "daily"; });
+    var allDone = dailyHabits.length > 0 && dailyHabits.every(function(h) { return checked[getPeriodKey(h)]; });
+    if (allDone && perfectDays.lastChecked !== TODAY) {
+      var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+      var newStreak  = perfectDays.lastPerfect === yesterday ? perfectDays.streak + 1 : 1;
+      var thisYear   = new Date().getFullYear();
+      var lastYear   = perfectDays.lastPerfect ? parseInt(perfectDays.lastPerfect.slice(0,4)) : 0;
+      var newYearCount = (lastYear === thisYear) ? perfectDays.yearCount + 1 : 1;
+      setPerfectDays({streak: newStreak, yearCount: newYearCount, lastPerfect: TODAY, lastChecked: TODAY});
+    }
+  }, [checked]);
+
+  function toggle(habit) {
+    var ck = getPeriodKey(habit);
+    var nowDone = !checked[ck];
+    setChecked(function(p) { var n = Object.assign({}, p); n[ck] = nowDone; return n; });
+    if (nowDone) {
+      var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      var cur  = streaks[habit.id] || 0;
+      var newS = habit.freq === "daily" && lastDone[habit.id] === yesterday ? cur + 1 : habit.freq === "daily" ? 1 : cur + 1;
+      setStreaks(function(p)   { var n = Object.assign({}, p); n[habit.id] = newS; return n; });
+      setLastDone(function(p)  { var n = Object.assign({}, p); n[habit.id] = TODAY; return n; });
+      setTotalDone(function(p) { var n = Object.assign({}, p); n[habit.id] = (p[habit.id] || 0) + 1; return n; });
+    } else {
+      setStreaks(function(p)   { var n = Object.assign({}, p); n[habit.id] = Math.max(0, (p[habit.id] || 1) - 1); return n; });
+      setTotalDone(function(p) { var n = Object.assign({}, p); n[habit.id] = Math.max(0, (p[habit.id] || 1) - 1); return n; });
+      setLastDone(function(p)  { var n = Object.assign({}, p); delete n[habit.id]; return n; });
+      if (habit.slider)     setQuantities(function(p) { var n = Object.assign({}, p); n[habit.id] = 0; return n; });
+      if (habit.multiCheck) setMultiSels(function(p)  { var n = Object.assign({}, p); n[habit.id] = []; return n; });
+    }
+  }
+
+  function setQty(habit, val) {
+    setQuantities(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; });
+    var ck = getPeriodKey(habit);
+    if (val >= 1000 && !checked[ck]) toggle(habit);
+    if (val <  1000 &&  checked[ck]) toggle(habit);
+  }
+
+  var visible = ALL_HABITS.filter(isVisibleToday)
+    .filter(function(h) { return activeTime === "all" || h.slot === activeTime; })
+;
+
+  var pending   = visible.filter(function(h) { return !checked[getPeriodKey(h)]; });
+  var completed = visible.filter(function(h) { return  checked[getPeriodKey(h)]; });
+
+  function timePending(slotId) {
+    return ALL_HABITS.filter(isVisibleToday)
+      .filter(function(h) { return slotId === "all" || h.slot === slotId; })
+
+      .filter(function(h) { return !checked[getPeriodKey(h)]; }).length;
+  }
+
+  var totalToday    = ALL_HABITS.filter(isVisibleToday).length;
+  var totalComplete = ALL_HABITS.filter(isVisibleToday).filter(function(h) { return checked[getPeriodKey(h)]; }).length;
+  var tab           = TIME_TABS.filter(function(t) { return t.id === activeTime; })[0];
+
+  return (
+    <div style={{minHeight:"100vh", background:"#FFFFFF", color:"#17191C", display:"flex", flexDirection:"column"}}>
+      <div style={{maxWidth:520, margin:"0 auto", width:"100%", display:"flex", flexDirection:"column", minHeight:"100vh"}}>
+
+        <div style={{padding:"12px 14px 0", background:"#FFFFFF", borderBottom:"1px solid #E6E8EB"}}>
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10}}>
+            <div>
+              <div style={{fontSize:9, color:"#12B3AC", letterSpacing:"0.2em", textTransform:"uppercase", fontWeight:700}}>DAILY SYSTEM</div>
+              <div style={{fontSize:18, fontWeight:900, color:"#17191C"}}>Habit Tracker</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:11, color:"#12B3AC", fontWeight:700}}>{new Date().toLocaleDateString("en-GB", {weekday:"long", day:"numeric", month:"short"})}</div>
+            </div>
+          </div>
+          {(function() {
+            var dailyHabits = ALL_HABITS.filter(isVisibleToday).filter(function(h) { return h.freq === "daily"; });
+            var doneCount   = dailyHabits.filter(function(h) { return checked[getPeriodKey(h)]; }).length;
+            var pct         = dailyHabits.length > 0 ? Math.round((doneCount / dailyHabits.length) * 100) : 0;
+            var isPerfect   = pct === 100;
+            return isPerfect ? (
+              <div style={{display:"flex", alignItems:"center", gap:8, padding:"6px 0 8px", borderBottom:"1px solid #12B3AC33"}}>
+                <span style={{fontSize:11, color:"#12B3AC"}}>★</span>
+                <span style={{fontSize:11, fontWeight:900, color:"#12B3AC", letterSpacing:"0.05em"}}>PERFECT DAY</span>
+                <div style={{flex:1, height:3, background:"#12B3AC", borderRadius:2}} />
+                <span style={{fontSize:9, color:"#0C8A83"}}>{perfectDays.streak} streak · {perfectDays.yearCount}x year</span>
+              </div>
+            ) : (
+              <div style={{paddingBottom:8}}>
+                <div style={{display:"flex", justifyContent:"space-between", marginBottom:4}}>
+                  <span style={{fontSize:8, color:"#6B7280", textTransform:"uppercase", letterSpacing:"0.08em"}}>Daily progress</span>
+                  <span style={{fontSize:9, fontWeight:700, color:"#6B7280"}}>{doneCount}/{dailyHabits.length} · {pct}%</span>
+                </div>
+                <div style={{height:4, background:"#E6E8EB", borderRadius:2, overflow:"hidden"}}>
+                  <div style={{height:"100%", width:pct + "%", background:"#6B7280", borderRadius:2, transition:"width 0.3s"}} />
+                </div>
+              </div>
+            );
+          })()}
+          <div style={{display:"flex"}}>
+            {TIME_TABS.map(function(t) {
+              var cnt = t.id === "goals" ? 0 : timePending(t.id);
+              return (
+                <button key={t.id} onClick={function() { setActiveTime(t.id); }}
+                  style={{flex:1, padding:"7px 2px", background:"transparent", border:"none", borderBottom:activeTime === t.id ? "2px solid " + t.color : "2px solid transparent", color:activeTime === t.id ? t.color : "#6B7280", cursor:"pointer", fontFamily:"inherit", fontSize:8, fontWeight:700, textAlign:"center"}}>
+                  <div>{t.label}</div>
+                  {cnt > 0 && <div style={{fontSize:8, fontWeight:900, color:t.color}}>{cnt}</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+
+
+        {activeTime === "goals" ? <GoalsView /> : (
+          <div style={{flex:1, overflowY:"auto", padding:"8px 12px"}}>
+            {visible.length === 0 && (
+              <div style={{textAlign:"center", color:"#9BA1A8", padding:"30px 0", fontSize:11}}>No habits for this slot</div>
+            )}
+            {pending.length > 0 && (
+              <div style={{display:"flex", alignItems:"center", gap:6, padding:"5px 8px", background:"#F5F6F8", borderRadius:6, marginBottom:6}}>
+                <span style={{fontSize:9, fontWeight:700, color:"#9BA1A8", textTransform:"uppercase", letterSpacing:"0.1em"}}>Pending ({pending.length})</span>
+                <div style={{flex:1, height:1, background:"#E6E8EB"}} />
+              </div>
+            )}
+            {pending.map(function(habit) {
+              return (
+                <HabitItem key={habit.id} habit={habit} done={false}
+                  streak={streaks[habit.id] || 0} total={totalDone[habit.id] || 0}
+                  tabColor={tab.color} showCat={false}
+                  note={notes[habit.id] || ""}
+                  onSaveNote={function(val) { setNotes(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; }); }}
+                  qty={quantities[habit.id] || 0} onQty={function(val) { setQty(habit, val); }}
+                  multiSel={multiSels[habit.id] || []}
+                  onMultiSel={function(val) { setMultiSels(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; }); }}
+                  onToggle={function() { toggle(habit); }} />
+              );
+            })}
+            {completed.length > 0 && (
+              <div style={{marginTop:10}}>
+                <div style={{display:"flex", alignItems:"center", gap:6, padding:"5px 8px", background:"#F5F6F8", borderRadius:6, marginBottom:6}}>
+                  <span style={{fontSize:9, fontWeight:700, color:"#12B3AC", textTransform:"uppercase", letterSpacing:"0.1em"}}>Done ({completed.length})</span>
+                  <div style={{flex:1, height:1, background:"#E6E8EB"}} />
+                  <span style={{fontSize:8, color:"#9BA1A8"}}>tap to untick</span>
+                </div>
+                {completed.map(function(habit) {
+                  return (
+                    <HabitItem key={habit.id} habit={habit} done={true}
+                      streak={streaks[habit.id] || 0} total={totalDone[habit.id] || 0}
+                      tabColor={tab.color} showCat={false}
+                      note={notes[habit.id] || ""}
+                      onSaveNote={function(val) { setNotes(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; }); }}
+                      qty={quantities[habit.id] || 0} onQty={function(val) { setQty(habit, val); }}
+                      multiSel={multiSels[habit.id] || []}
+                      onMultiSel={function(val) { setMultiSels(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; }); }}
+                      onToggle={function() { toggle(habit); }} />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{padding:"8px 12px", background:"#FFFFFF", borderTop:"1px solid #E6E8EB", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+          <div style={{fontSize:8.5, color:"#9BA1A8"}}>Streaks reset if you miss a day</div>
+          {activeTime !== "goals" && (
+            <button onClick={function() {
+              if (confirm("Reset all visible habits for today?")) {
+                var n = Object.assign({}, checked);
+                visible.forEach(function(h) { delete n[getPeriodKey(h)]; });
+                setChecked(n);
+              }
+            }} style={{background:"transparent", border:"1px solid #E6E8EB", color:"#9BA1A8", padding:"4px 10px", borderRadius:5, cursor:"pointer", fontSize:9, fontFamily:"inherit"}}>
+              Reset today
+            </button>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
