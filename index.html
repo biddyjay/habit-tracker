@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Habit Tracker</title>
+<meta name="theme-color" content="#FFFFFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Habit Tracker">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -17,6 +20,7 @@ body { background: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Int
 </head>
 <body>
 <div id="root"></div>
+<script type="module" src="./cloud.js"></script>
 <script type="text/babel">
 const { useState, useEffect } = React;
 
@@ -117,42 +121,6 @@ function isVisibleToday(h) {
   return true;
 }
 function isUrl(t) { try { new URL(t); return true; } catch(e) { return false; } }
-function ld(k, d) { try { return JSON.parse(localStorage.getItem(k) || JSON.stringify(d)); } catch(e) { return d; } }
-function sv(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
-
-function GoalsView() {
-  const [checked, setChecked] = useState(function() { return ld("ht_goals", {}); });
-  useEffect(function() { sv("ht_goals", checked); }, [checked]);
-  var cats = [];
-  GOALS.forEach(function(g) { if (cats.indexOf(g.category) === -1) cats.push(g.category); });
-  var doneCount = GOALS.filter(function(g) { return checked[g.id]; }).length;
-  return (
-    <div style={{flex:1, overflowY:"auto", padding:"10px 12px"}}>
-      <div style={{fontSize:10, color:"#12B3AC", fontWeight:700, marginBottom:12}}>{doneCount}/{GOALS.length} achieved</div>
-      {cats.map(function(cat) {
-        return (
-          <div key={cat} style={{marginBottom:16}}>
-            <div style={{fontSize:9, fontWeight:700, color:"#12B3AC", textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:6}}>{cat}</div>
-            {GOALS.filter(function(g) { return g.category === cat; }).map(function(goal) {
-              var isDone = !!checked[goal.id];
-              return (
-                <div key={goal.id} onClick={function() { setChecked(function(p) { var n = Object.assign({}, p); n[goal.id] = !p[goal.id]; return n; }); }}
-                  style={{display:"flex", alignItems:"center", gap:10, padding:"11px 14px", marginBottom:5, borderRadius:9, cursor:"pointer", background:isDone ? "#12B3AC18" : "#F5F6F8", border:"1px solid " + (isDone ? "#12B3AC" : "#E6E8EB")}}>
-                  <div style={{width:18, height:18, borderRadius:5, border:"1.5px solid " + (isDone ? "#12B3AC" : "#6B7280"), background:isDone ? "#12B3AC" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>
-                    {isDone && <span style={{color:"#fff", fontSize:11, fontWeight:800}}>✓</span>}
-                  </div>
-                  <span style={{fontSize:13, fontWeight:600, color:isDone ? "#9BA1A8" : "#17191C", textDecoration:isDone ? "line-through" : "none", flex:1}}>{goal.label}</span>
-                  {isDone && <span>★</span>}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function HabitItem(props) {
   var habit = props.habit, done = props.done, streak = props.streak, total = props.total;
   var tabColor = props.tabColor, showCat = props.showCat, onToggle = props.onToggle;
@@ -205,8 +173,7 @@ function HabitItem(props) {
                   var cur = multiSel || [];
                   var next = sel ? cur.filter(function(x) { return x !== item; }) : cur.concat([item]);
                   onMultiSel(next);
-                  if (next.length === habit.multiCheck.length && !done) onToggle();
-                  if (next.length < habit.multiCheck.length && done) onToggle();
+
                 }} style={{padding:"5px 8px", borderRadius:6, border:"1px solid " + (done ? "#9BA1A8" : sel ? tabColor : "#E6E8EB"), background:done ? "#EFF1F3" : sel ? tabColor + "22" : "transparent", color:done ? "#6B7280" : sel ? tabColor : "#6B7280", cursor:"pointer", fontSize:9.5, fontWeight:700, fontFamily:"inherit"}}>
                   {sel ? "✓ " : ""}{item}
                 </button>
@@ -281,235 +248,103 @@ function HabitItem(props) {
   );
 }
 
-function App() {
-  const [activeTime, setActiveTime] = useState("wakeup");
-  const [checked,    setChecked]    = useState(function() { return ld("ht_checked", {}); });
-  const [streaks,    setStreaks]     = useState(function() { return ld("ht_streaks", {}); });
-  const [lastDone,   setLastDone]   = useState(function() { return ld("ht_lastdone", {}); });
-  const [totalDone,  setTotalDone]  = useState(function() { return ld("ht_totaldone", {}); });
-  const [quantities, setQuantities] = useState(function() { return ld("ht_qty_" + getLocalDate(), {}); });
-  const [multiSels,  setMultiSels]  = useState(function() { return ld("ht_multi_" + getLocalDate(), {}); });
-  const [perfectDays, setPerfectDays] = useState(function() { return ld("ht_perfect", {streak:0, yearCount:0, lastPerfect:"", lastChecked:""}); });
-  const [notes,      setNotes]      = useState(function() {
-    var saved    = ld("ht_notes", {});
-    var ver      = ld("ht_notes_ver", 0);
-    var defaults = {};
-    ALL_HABITS.forEach(function(h) { if (h.defaultNote) defaults[h.id] = h.defaultNote; });
-    if (ver < NOTES_VERSION) {
-      // Curated links changed: let defaults win for habits that have one,
-      // keep user-authored notes on habits without a default. Runs once per bump.
-      var migrated = Object.assign({}, saved, defaults);
-      sv("ht_notes", migrated);
-      sv("ht_notes_ver", NOTES_VERSION);
-      return migrated;
-    }
-    return Object.assign({}, defaults, saved);
-  });
 
-  useEffect(function() { sv("ht_checked",   checked);    }, [checked]);
-  useEffect(function() { sv("ht_streaks",   streaks);    }, [streaks]);
-  useEffect(function() { sv("ht_lastdone",  lastDone);   }, [lastDone]);
-  useEffect(function() { sv("ht_totaldone", totalDone);  }, [totalDone]);
-  useEffect(function() { sv("ht_qty_" + getLocalDate(), quantities); }, [quantities]);
-  useEffect(function() { sv("ht_multi_" + getLocalDate(), multiSels);  }, [multiSels]);
-  useEffect(function() { sv("ht_perfect",   perfectDays); }, [perfectDays]);
-  useEffect(function() { sv("ht_notes",     notes);      }, [notes]);
-
-  useEffect(function() {
-    var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    var upd = Object.assign({}, streaks);
-    var changed = false;
-    Object.keys(lastDone).forEach(function(id) {
-      if (lastDone[id] !== TODAY && lastDone[id] !== yesterday && (upd[id] || 0) > 0) {
-        upd[id] = 0; changed = true;
-      }
-    });
-    if (changed) setStreaks(upd);
-  }, []);
-
-  // Check perfect day completion
-  useEffect(function() {
-    var dailyHabits = ALL_HABITS.filter(isVisibleToday).filter(function(h) { return h.freq === "daily"; });
-    var allDone = dailyHabits.length > 0 && dailyHabits.every(function(h) { return checked[getPeriodKey(h)]; });
-    if (allDone && perfectDays.lastChecked !== TODAY) {
-      var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
-      var newStreak  = perfectDays.lastPerfect === yesterday ? perfectDays.streak + 1 : 1;
-      var thisYear   = new Date().getFullYear();
-      var lastYear   = perfectDays.lastPerfect ? parseInt(perfectDays.lastPerfect.slice(0,4)) : 0;
-      var newYearCount = (lastYear === thisYear) ? perfectDays.yearCount + 1 : 1;
-      setPerfectDays({streak: newStreak, yearCount: newYearCount, lastPerfect: TODAY, lastChecked: TODAY});
-    }
-  }, [checked]);
-
-  function toggle(habit) {
-    var ck = getPeriodKey(habit);
-    var nowDone = !checked[ck];
-    setChecked(function(p) { var n = Object.assign({}, p); n[ck] = nowDone; return n; });
-    if (nowDone) {
-      var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      var cur  = streaks[habit.id] || 0;
-      var newS = habit.freq === "daily" && lastDone[habit.id] === yesterday ? cur + 1 : habit.freq === "daily" ? 1 : cur + 1;
-      setStreaks(function(p)   { var n = Object.assign({}, p); n[habit.id] = newS; return n; });
-      setLastDone(function(p)  { var n = Object.assign({}, p); n[habit.id] = TODAY; return n; });
-      setTotalDone(function(p) { var n = Object.assign({}, p); n[habit.id] = (p[habit.id] || 0) + 1; return n; });
-    } else {
-      setStreaks(function(p)   { var n = Object.assign({}, p); n[habit.id] = Math.max(0, (p[habit.id] || 1) - 1); return n; });
-      setTotalDone(function(p) { var n = Object.assign({}, p); n[habit.id] = Math.max(0, (p[habit.id] || 1) - 1); return n; });
-      setLastDone(function(p)  { var n = Object.assign({}, p); delete n[habit.id]; return n; });
-      if (habit.slider)     setQuantities(function(p) { var n = Object.assign({}, p); n[habit.id] = 0; return n; });
-      if (habit.multiCheck) setMultiSels(function(p)  { var n = Object.assign({}, p); n[habit.id] = []; return n; });
-    }
-  }
-
-  function setQty(habit, val) {
-    setQuantities(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; });
-    var ck = getPeriodKey(habit);
-    if (val >= 1000 && !checked[ck]) toggle(habit);
-    if (val <  1000 &&  checked[ck]) toggle(habit);
-  }
-
-  var visible = ALL_HABITS.filter(isVisibleToday)
-    .filter(function(h) { return activeTime === "all" || h.slot === activeTime; })
-;
-
-  var pending   = visible.filter(function(h) { return !checked[getPeriodKey(h)]; });
-  var completed = visible.filter(function(h) { return  checked[getPeriodKey(h)]; });
-
-  function timePending(slotId) {
-    return ALL_HABITS.filter(isVisibleToday)
-      .filter(function(h) { return slotId === "all" || h.slot === slotId; })
-
-      .filter(function(h) { return !checked[getPeriodKey(h)]; }).length;
-  }
-
-  var totalToday    = ALL_HABITS.filter(isVisibleToday).length;
-  var totalComplete = ALL_HABITS.filter(isVisibleToday).filter(function(h) { return checked[getPeriodKey(h)]; }).length;
-  var tab           = TIME_TABS.filter(function(t) { return t.id === activeTime; })[0];
-
-  return (
-    <div style={{minHeight:"100vh", background:"#FFFFFF", color:"#17191C", display:"flex", flexDirection:"column"}}>
-      <div style={{maxWidth:520, margin:"0 auto", width:"100%", display:"flex", flexDirection:"column", minHeight:"100vh"}}>
-
-        <div style={{padding:"12px 14px 0", background:"#FFFFFF", borderBottom:"1px solid #E6E8EB"}}>
-          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10}}>
-            <div>
-              <div style={{fontSize:9, color:"#12B3AC", letterSpacing:"0.2em", textTransform:"uppercase", fontWeight:700}}>DAILY SYSTEM</div>
-              <div style={{fontSize:18, fontWeight:900, color:"#17191C"}}>Habit Tracker</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:11, color:"#12B3AC", fontWeight:700}}>{new Date().toLocaleDateString("en-GB", {weekday:"long", day:"numeric", month:"short"})}</div>
-            </div>
-          </div>
-          {(function() {
-            var dailyHabits = ALL_HABITS.filter(isVisibleToday).filter(function(h) { return h.freq === "daily"; });
-            var doneCount   = dailyHabits.filter(function(h) { return checked[getPeriodKey(h)]; }).length;
-            var pct         = dailyHabits.length > 0 ? Math.round((doneCount / dailyHabits.length) * 100) : 0;
-            var isPerfect   = pct === 100;
-            return isPerfect ? (
-              <div style={{display:"flex", alignItems:"center", gap:8, padding:"6px 0 8px", borderBottom:"1px solid #12B3AC33"}}>
-                <span style={{fontSize:11, color:"#12B3AC"}}>★</span>
-                <span style={{fontSize:11, fontWeight:900, color:"#12B3AC", letterSpacing:"0.05em"}}>PERFECT DAY</span>
-                <div style={{flex:1, height:3, background:"#12B3AC", borderRadius:2}} />
-                <span style={{fontSize:9, color:"#0C8A83"}}>{perfectDays.streak} streak · {perfectDays.yearCount}x year</span>
-              </div>
-            ) : (
-              <div style={{paddingBottom:8}}>
-                <div style={{display:"flex", justifyContent:"space-between", marginBottom:4}}>
-                  <span style={{fontSize:8, color:"#6B7280", textTransform:"uppercase", letterSpacing:"0.08em"}}>Daily progress</span>
-                  <span style={{fontSize:9, fontWeight:700, color:"#6B7280"}}>{doneCount}/{dailyHabits.length} · {pct}%</span>
-                </div>
-                <div style={{height:4, background:"#E6E8EB", borderRadius:2, overflow:"hidden"}}>
-                  <div style={{height:"100%", width:pct + "%", background:"#6B7280", borderRadius:2, transition:"width 0.3s"}} />
-                </div>
-              </div>
-            );
-          })()}
-          <div style={{display:"flex"}}>
-            {TIME_TABS.map(function(t) {
-              var cnt = t.id === "goals" ? 0 : timePending(t.id);
-              return (
-                <button key={t.id} onClick={function() { setActiveTime(t.id); }}
-                  style={{flex:1, padding:"7px 2px", background:"transparent", border:"none", borderBottom:activeTime === t.id ? "2px solid " + t.color : "2px solid transparent", color:activeTime === t.id ? t.color : "#6B7280", cursor:"pointer", fontFamily:"inherit", fontSize:8, fontWeight:700, textAlign:"center"}}>
-                  <div>{t.label}</div>
-                  {cnt > 0 && <div style={{fontSize:8, fontWeight:900, color:t.color}}>{cnt}</div>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-
-
-        {activeTime === "goals" ? <GoalsView /> : (
-          <div style={{flex:1, overflowY:"auto", padding:"8px 12px"}}>
-            {visible.length === 0 && (
-              <div style={{textAlign:"center", color:"#9BA1A8", padding:"30px 0", fontSize:11}}>No habits for this slot</div>
-            )}
-            {pending.length > 0 && (
-              <div style={{display:"flex", alignItems:"center", gap:6, padding:"5px 8px", background:"#F5F6F8", borderRadius:6, marginBottom:6}}>
-                <span style={{fontSize:9, fontWeight:700, color:"#9BA1A8", textTransform:"uppercase", letterSpacing:"0.1em"}}>Pending ({pending.length})</span>
-                <div style={{flex:1, height:1, background:"#E6E8EB"}} />
-              </div>
-            )}
-            {pending.map(function(habit) {
-              return (
-                <HabitItem key={habit.id} habit={habit} done={false}
-                  streak={streaks[habit.id] || 0} total={totalDone[habit.id] || 0}
-                  tabColor={tab.color} showCat={false}
-                  note={notes[habit.id] || ""}
-                  onSaveNote={function(val) { setNotes(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; }); }}
-                  qty={quantities[habit.id] || 0} onQty={function(val) { setQty(habit, val); }}
-                  multiSel={multiSels[habit.id] || []}
-                  onMultiSel={function(val) { setMultiSels(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; }); }}
-                  onToggle={function() { toggle(habit); }} />
-              );
-            })}
-            {completed.length > 0 && (
-              <div style={{marginTop:10}}>
-                <div style={{display:"flex", alignItems:"center", gap:6, padding:"5px 8px", background:"#F5F6F8", borderRadius:6, marginBottom:6}}>
-                  <span style={{fontSize:9, fontWeight:700, color:"#12B3AC", textTransform:"uppercase", letterSpacing:"0.1em"}}>Done ({completed.length})</span>
-                  <div style={{flex:1, height:1, background:"#E6E8EB"}} />
-                  <span style={{fontSize:8, color:"#9BA1A8"}}>tap to untick</span>
-                </div>
-                {completed.map(function(habit) {
-                  return (
-                    <HabitItem key={habit.id} habit={habit} done={true}
-                      streak={streaks[habit.id] || 0} total={totalDone[habit.id] || 0}
-                      tabColor={tab.color} showCat={false}
-                      note={notes[habit.id] || ""}
-                      onSaveNote={function(val) { setNotes(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; }); }}
-                      qty={quantities[habit.id] || 0} onQty={function(val) { setQty(habit, val); }}
-                      multiSel={multiSels[habit.id] || []}
-                      onMultiSel={function(val) { setMultiSels(function(p) { var n = Object.assign({}, p); n[habit.id] = val; return n; }); }}
-                      onToggle={function() { toggle(habit); }} />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div style={{padding:"8px 12px", background:"#FFFFFF", borderTop:"1px solid #E6E8EB", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-          <div style={{fontSize:8.5, color:"#9BA1A8"}}>Streaks reset if you miss a day</div>
-          {activeTime !== "goals" && (
-            <button onClick={function() {
-              if (confirm("Reset all visible habits for today?")) {
-                var n = Object.assign({}, checked);
-                visible.forEach(function(h) { delete n[getPeriodKey(h)]; });
-                setChecked(n);
-              }
-            }} style={{background:"transparent", border:"1px solid #E6E8EB", color:"#9BA1A8", padding:"4px 10px", borderRadius:5, cursor:"pointer", fontSize:9, fontFamily:"inherit"}}>
-              Reset today
-            </button>
-          )}
-        </div>
-
-      </div>
-    </div>
-  );
+// Private progress model: one document per dated habit, never one shared JSON blob.
+function localDate(date = new Date(), timeZone = 'Asia/Dubai') {
+  const parts = new Intl.DateTimeFormat('en-CA', {timeZone, year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(date);
+  const get = kind => parts.find(p => p.type === kind).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+function previousDate(day) {
+  const d = new Date(day + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+function periodKey(habit, day) {
+  if (habit.freq !== 'weekly') return day;
+  const d = new Date(day + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+function completion(habit, record = {}) {
+  if (habit.multiCheck) return habit.multiCheck.every(item => (record.items || []).includes(item));
+  if (habit.slider) return Number(record.quantity || 0) >= 1000;
+  return record.done === true;
+}
+function makeRecord(habit, day, change, source = 'app') {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error('An explicit date is required');
+  const record = {habitId:habit.id, date:day, period:periodKey(habit, day), ...change, source};
+  record.done = completion(habit, record);
+  return record;
+}
+function stats(habit, records, today) {
+  const dates = [...new Set(records.filter(r => r.habitId === habit.id && completion(habit,r)).map(r => r.period))].sort().reverse();
+  let streak = 0;
+  let cursor = habit.freq === 'weekly' ? periodKey(habit,today) : today;
+  const back = day => {
+    if (habit.freq !== 'weekly') return previousDate(day);
+    const d = new Date(day + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() - 7);
+    return d.toISOString().slice(0,10);
+  };
+  if (!dates.includes(cursor)) cursor = back(cursor);
+  while(dates.includes(cursor)) { streak++; cursor = back(cursor); }
+  return {streak, total:dates.length, yearTotal:dates.filter(day => day.slice(0,4) === today.slice(0,4)).length};
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+function PrivateGoals({cloud,save}) {
+ return <div style={{padding:14}}>{GOALS.map(goal=><button key={goal.id} onClick={()=>save('goals',goal.id,{done:!cloud.goals[goal.id]?.done})} style={{display:'block',width:'100%',padding:12,marginBottom:6,textAlign:'left',border:'1px solid #E6E8EB',borderRadius:8,background:cloud.goals[goal.id]?.done?'#E5F8F6':'white'}}>{cloud.goals[goal.id]?.done?'✓ ':''}{goal.label}</button>)}</div>;
+}
+function App(){
+ const [cloud,setCloud]=useState({user:null,ready:false,records:{},notes:{},goals:{},diagnostics:{},pending:0,error:null});
+ const [sdk,setSdk]=useState(!!window.HabitCloud);
+ const [tab,setTab]=useState('wakeup');
+ const [day,setDay]=useState(()=>localDate());
+ const [error,setError]=useState('');
+ const [busy,setBusy]=useState(false);
+ const [diagnostic,setDiagnostic]=useState('');
+ useEffect(()=>{
+  let unsubscribe;
+  const connect=()=>{setSdk(true);unsubscribe=window.HabitCloud.subscribe(setCloud);};
+  if(window.HabitCloud)connect();else window.addEventListener('habit-cloud-ready',connect);
+  const timer=setInterval(()=>setDay(localDate()),15000);
+  const focus=()=>setDay(localDate());window.addEventListener('focus',focus);
+  return()=>{unsubscribe?.();clearInterval(timer);window.removeEventListener('focus',focus);window.removeEventListener('habit-cloud-ready',connect);};
+ },[]);
+ const records=Object.values(cloud.records);
+ const visible=ALL_HABITS.filter(h=>tab==='all'||h.slot===tab);
+ const recordId=h=>h.id+'_'+periodKey(h,day);
+ const current=h=>cloud.records[recordId(h)]||{};
+ const save=async(type,id,value)=>{setError('');try{await window.HabitCloud.save(type,id,value);return true;}catch(e){setError(e.message);return false;}};
+ const change=(h,patch)=>{const r=makeRecord(h,day,{...current(h),...patch});save('records',recordId(h),r);};
+ const done=h=>completion(h,current(h));
+ const toggle=h=>{
+  const next=!done(h);const patch={done:next};
+  if(h.multiCheck)patch.items=next?[...h.multiCheck]:[];
+  if(h.slider)patch.quantity=next?1000:0;
+  change(h,patch);
+ };
+ const login=async event=>{event.preventDefault();setBusy(true);setError('');const form=event.currentTarget;try{await window.HabitCloud.login(form.elements.email.value,form.elements.password.value);form.elements.password.value='';}catch(e){setError('Sign-in failed. Check the tracker email and password, not your Google password.');}finally{setBusy(false);}};
+ const daily=ALL_HABITS.filter(h=>h.freq==='daily');const count=daily.filter(done).length;
+ const style={width:'100%',border:'1px solid #D6DBDF',borderRadius:8,padding:12,fontSize:16,marginBottom:10};
+ return <main style={{maxWidth:520,margin:'0 auto',minHeight:'100vh',padding:12,color:'#17191C',background:'#fff'}}>
+  <header style={{padding:'8px 2px 14px'}}><div style={{color:'#0A8F89',fontSize:10,letterSpacing:2}}>DAILY SYSTEM</div><h1 style={{fontSize:24}}>Habit Tracker</h1><div style={{fontSize:12,color:'#68727A',marginTop:6}}>{day} · Dubai time</div></header>
+  {!cloud.user?<section style={{border:'1px solid #E6E8EB',padding:18,borderRadius:12}}><h2 style={{fontSize:18,marginBottom:10}}>Your private progress</h2><p style={{fontSize:14,lineHeight:1.5,marginBottom:16}}>Sign in once to see the same progress on your phone and from confirmed updates in our chat. Previous browser history is left untouched and is not imported.</p><form onSubmit={login}><label>Email<input style={style} name="email" type="email" autoComplete="username" required/></label><label>Tracker password<input style={style} name="password" type="password" autoComplete="current-password" required/></label><button style={{...style,background:'#0A8F89',color:'white',fontWeight:700}} disabled={!sdk||busy}>{busy?'Signing in…':sdk?'Sign in':'Loading secure sign-in…'}</button></form><small>Use your new tracker password, not your Google password.</small></section>:<>
+  <div role="status" style={{padding:10,borderRadius:8,background:'#F0F8F7',fontSize:12,marginBottom:10}}>{cloud.error?cloud.error:!cloud.ready?'Connecting to private progress…':cloud.pending?'Saving changes…':'Private progress synced'} <button style={{float:'right',border:0,background:'transparent',fontSize:11}} onClick={()=>window.HabitCloud.logout()}>Sign out</button></div>
+  <p style={{fontSize:12,lineHeight:1.5,color:'#68727A',marginBottom:12}}>Tell me in our chat when a habit is done. No need to enter it twice. Old local history has not been imported.</p>
+  {cloud.ready&&<><div style={{fontSize:12,marginBottom:5}}>Daily progress: {count}/{daily.length}</div><div role="progressbar" aria-label="Daily progress" aria-valuenow={count} aria-valuemin="0" aria-valuemax={daily.length} style={{height:5,background:'#E6E8EB',borderRadius:4,marginBottom:12}}><div style={{width:(count/daily.length*100)+'%',height:'100%',background:'#12B3AC',borderRadius:4}}/></div>
+  <nav style={{display:'flex',gap:2,borderBottom:'1px solid #E6E8EB',marginBottom:12}}>{TIME_TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:'10px 0',fontSize:9,border:0,borderBottom:tab===t.id?'2px solid #12B3AC':'2px solid transparent',background:'white',color:tab===t.id?'#078B85':'#68727A'}}>{t.label}</button>)}</nav>
+  {tab==='weekly'&&<p style={{fontSize:12,marginBottom:10}}>Weekly habits can be completed any day this week. Weeks run Monday to Sunday.</p>}
+  {tab==='goals'?<PrivateGoals cloud={cloud} save={save}/>:visible.map(h=>{const s=stats(h,records,day);return <HabitItem key={h.id} habit={h} done={done(h)} streak={s.streak} total={s.yearTotal} tabColor="#12B3AC" showCat={tab==='all'} note={cloud.notes[h.id]?.text??h.defaultNote??''} onSaveNote={text=>save('notes',h.id,{text})} qty={current(h).quantity||0} onQty={quantity=>change(h,{quantity})} multiSel={current(h).items||[]} onMultiSel={items=>change(h,{items})} onToggle={()=>toggle(h)}/>;})}
+  <details style={{marginTop:24,fontSize:12,color:'#68727A'}}><summary>Connection check</summary><p style={{margin:'10px 0'}}>A connection test writes a separate test marker. It never ticks a habit or changes your progress.</p><button onClick={async()=>{const marker=Date.now().toString();if(await save('diagnostics','connection',{marker}))setDiagnostic(marker);}}>Run connection test</button><p>{diagnostic&&cloud.diagnostics.connection?.marker===diagnostic?'Connection test synced.':''}</p><p>Last test: {cloud.diagnostics.connection?.marker||'None'}</p></details>
+  </>}
+  </>}
+  {(error||cloud.error)&&<p role="alert" style={{padding:12,color:'#A62929',fontSize:14}}>{error||cloud.error}</p>}
+  <footer style={{fontSize:11,color:'#68727A',padding:'24px 0'}}>Fresh tracking · Your saved progress is private.</footer>
+ </main>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+
 </script>
 </body>
 </html>
